@@ -8,6 +8,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+  permissions?: string[];
   active?: boolean;
   createdAt?: string;
 }
@@ -76,7 +77,8 @@ export interface Order {
     required: boolean;
     checkoutUrl: string;
     sessionId: string;
-    providerId: string;
+    paymentStatus?: import('@/types/payment').PaymentStatus;
+    expiresAt?: string;
   };
 }
 

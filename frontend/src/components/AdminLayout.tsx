@@ -14,35 +14,23 @@ import {
   useMediaQuery,
   useTheme,
   Avatar,
+  CircularProgress,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import SettingsIcon from '@mui/icons-material/Settings';
-import PeopleIcon from '@mui/icons-material/People';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import EventIcon from '@mui/icons-material/Event';
 import LogoutIcon from '@mui/icons-material/Logout';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import StorefrontIcon from '@mui/icons-material/Storefront';
-import ExtensionIcon from '@mui/icons-material/Extension';
 import { useClub } from '@/contexts/ClubContext';
 import { getImageUrl } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { canAccessPermission } from '@/utils/permissions';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { useModuleMenuItems } from '@/module-system';
+import { useAdminUi } from '@/contexts/AdminUiContext';
+import { resolveAdminIcon } from '@/admin/iconMap';
 
 const DRAWER_WIDTH = 260;
-
-const coreNavItems = [
-  { path: '/admin', label: 'Übersicht', icon: <DashboardIcon /> },
-  { path: '/admin/verein', label: 'Verein & Kontakt', icon: <SettingsIcon /> },
-  { path: '/admin/benutzer', label: 'Benutzer', icon: <PeopleIcon /> },
-  { path: '/admin/veranstaltungen', label: 'Veranstaltungen', icon: <EventIcon /> },
-  { path: '/admin/speisen', label: 'Speisen', icon: <RestaurantMenuIcon /> },
-  { path: '/admin/module', label: 'Module', icon: <ExtensionIcon /> },
-];
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -60,44 +48,49 @@ export function AdminLayout({ children, title, fullWidth = false }: AdminLayoutP
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { club } = useClub();
   const logoUrl = getImageUrl(club.logoUrl || undefined);
-  const moduleMenuItems = useModuleMenuItems();
+  const { catalog, loading } = useAdminUi();
 
-  const navItems = [
-    ...coreNavItems,
-    ...moduleMenuItems.map((item) => ({
+  const navItems = (catalog?.navigation ?? [])
+    .filter((item) => canAccessPermission(user, item.requiredPermission))
+    .map((item) => ({
       path: item.path,
       label: item.label,
-      icon: <ExtensionIcon />,
-    })),
-  ];
+      icon: resolveAdminIcon(item.icon),
+    }));
 
   const drawerContent = (
     <Box sx={{ width: DRAWER_WIDTH, pt: 2 }}>
       <Typography variant="h6" sx={{ px: 2, mb: 2, fontWeight: 700 }}>
         Administration
       </Typography>
-      <List>
-        {navItems.map((item) => (
-          <ListItemButton
-            key={item.path}
-            component={Link}
-            to={item.path}
-            selected={location.pathname === item.path}
-            onClick={() => setDrawerOpen(false)}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : (
+        <List>
+          {navItems.map((item) => (
+            <ListItemButton
+              key={item.path}
+              component={Link}
+              to={item.path}
+              selected={location.pathname === item.path}
+              onClick={() => setDrawerOpen(false)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+          <ListItemButton component={Link} to="/mitarbeiter" onClick={() => setDrawerOpen(false)}>
+            <ListItemIcon><StorefrontIcon /></ListItemIcon>
+            <ListItemText primary="Mitarbeiterbereich" />
           </ListItemButton>
-        ))}
-        <ListItemButton component={Link} to="/mitarbeiter" onClick={() => setDrawerOpen(false)}>
-          <ListItemIcon><StorefrontIcon /></ListItemIcon>
-          <ListItemText primary="Mitarbeiterbereich" />
-        </ListItemButton>
-        <ListItemButton onClick={() => { logout(); navigate('/admin/login'); }}>
-          <ListItemIcon><LogoutIcon /></ListItemIcon>
-          <ListItemText primary="Abmelden" />
-        </ListItemButton>
-      </List>
+          <ListItemButton onClick={() => { logout(); navigate('/admin/login'); }}>
+            <ListItemIcon><LogoutIcon /></ListItemIcon>
+            <ListItemText primary="Abmelden" />
+          </ListItemButton>
+        </List>
+      )}
     </Box>
   );
 

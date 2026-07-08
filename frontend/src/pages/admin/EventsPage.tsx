@@ -36,6 +36,7 @@ interface EventForm {
   onlineOrdersActive: boolean;
   cashierActive: boolean;
   ordersClosed: boolean;
+  activateOnCreate: boolean;
 }
 
 const emptyForm: EventForm = {
@@ -47,6 +48,7 @@ const emptyForm: EventForm = {
   onlineOrdersActive: true,
   cashierActive: true,
   ordersClosed: false,
+  activateOnCreate: true,
 };
 
 export function EventsPage() {
@@ -85,6 +87,7 @@ export function EventsPage() {
       onlineOrdersActive: event.onlineOrdersActive,
       cashierActive: event.cashierActive,
       ordersClosed: event.ordersClosed,
+      activateOnCreate: false,
     });
     setDialogOpen(true);
   };
@@ -179,6 +182,9 @@ export function EventsPage() {
             <FormControlLabel control={<Switch checked={form.onlineOrdersActive} onChange={(e) => setForm({ ...form, onlineOrdersActive: e.target.checked })} />} label="Onlinebestellungen aktiv" />
             <FormControlLabel control={<Switch checked={form.cashierActive} onChange={(e) => setForm({ ...form, cashierActive: e.target.checked })} />} label="Bestellung vor Ort aktiv" />
             <FormControlLabel control={<Switch checked={form.ordersClosed} onChange={(e) => setForm({ ...form, ordersClosed: e.target.checked })} />} label="Bestellungen geschlossen" />
+            {!editing && (
+              <FormControlLabel control={<Switch checked={form.activateOnCreate} onChange={(e) => setForm({ ...form, activateOnCreate: e.target.checked })} />} label="Nach dem Erstellen sofort aktivieren" />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>

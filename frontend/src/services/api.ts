@@ -43,6 +43,7 @@ export const api = {
     email?: string;
     phone?: string;
     items: { foodItemId: string; quantity: number }[];
+    paymentMethodId?: string;
     formStartedAt: number;
     _hp?: string;
     turnstileToken?: string;
@@ -50,6 +51,11 @@ export const api = {
   lookupOrder: (orderNumber: number, lastName: string) =>
     request<Order>('/public/orders/lookup', { method: 'POST', body: JSON.stringify({ orderNumber, lastName }) }),
   getOrder: (id: string) => request<Order>(`/public/orders/${id}`),
+  createOrderCheckout: (orderId: string, paymentMethodId: string) =>
+    request<import('@/types/payment').OrderPaymentInfo>(
+      `/public/orders/${orderId}/checkout`,
+      { method: 'POST', body: JSON.stringify({ paymentMethodId }) }
+    ),
   cancelOrder: (id: string, lastName: string) =>
     request<Order>(`/public/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify({ lastName }) }),
   getPickupBoard: () => request<PickupBoardOrder[]>('/public/pickup-board'),
@@ -101,10 +107,12 @@ export const api = {
   },
   getStats: (token: string, eventId: string) =>
     request<DashboardStats>(`/staff/events/${eventId}/stats`, {}, token),
-  createCashierOrder: (token: string, items: { foodItemId: string; quantity: number }[]) =>
-    request<Order>('/staff/orders/cashier', { method: 'POST', body: JSON.stringify({ items }) }, token),
-  lookupOrderByNumber: (token: string, orderNumber: number) =>
-    request<Order>('/staff/orders/lookup', { method: 'POST', body: JSON.stringify({ orderNumber }) }, token),
+  createCashierOrder: (token: string, items: { foodItemId: string; quantity: number }[], paymentMethodId?: string) =>
+    request<Order>('/staff/orders/cashier', { method: 'POST', body: JSON.stringify({ items, paymentMethodId }) }, token),
+  abortCashierPayment: (token: string, orderId: string, sessionId: string) =>
+    request<Order>(`/staff/orders/${orderId}/abort-payment`, { method: 'POST', body: JSON.stringify({ sessionId }) }, token),
+  lookupOrderByNumber: (token: string, orderNumber: number, lastName: string) =>
+    request<Order>('/staff/orders/lookup', { method: 'POST', body: JSON.stringify({ orderNumber, lastName }) }, token),
   updateOrderStatus: (token: string, id: string, status: OrderStatus) =>
     request<Order>(`/staff/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }, token),
   advanceOrder: (token: string, id: string) =>
@@ -172,6 +180,8 @@ export const api = {
     request<import('@/module-system').ModuleInfo>(`/admin/modules/${id}/reinitialize`, { method: 'POST' }, token),
   runModuleHealthCheck: (token: string, id: string) =>
     request<import('@/module-system').ModuleHealthResult>(`/admin/modules/${id}/health`, {}, token),
+  upgradeModule: (token: string, id: string) =>
+    request<import('@/module-system').ModuleInfo>(`/admin/modules/${id}/upgrade`, { method: 'POST' }, token),
   enableModule: (token: string, id: string) =>
     request<import('@/module-system').ModuleInfo>(`/admin/modules/${id}/enable`, { method: 'POST' }, token),
   disableModule: (token: string, id: string) =>
@@ -184,12 +194,157 @@ export const api = {
     request<import('@/module-system').ModuleMenuItem[]>('/public/modules/menu'),
   getPaymentStatus: () =>
     request<{ available: boolean }>('/public/payment/status'),
-  getPaymentConfig: (token: string) =>
-    request<Record<string, unknown>>('/modules/features/payment/admin/config', {}, token),
-  updatePaymentConfig: (token: string, config: Record<string, unknown>) =>
-    request<Record<string, unknown>>('/modules/features/payment/admin/config', { method: 'PUT', body: JSON.stringify(config) }, token),
+  getPaymentMethods: () =>
+    request<import('@/types/payment').PaymentMethodsResponse>('/public/payment/methods'),
+  getPaymentCheckoutStatus: (sessionId: string) =>
+    request<import('@/types/payment').PaymentStatusInfo>(`/public/payment/checkout/${sessionId}/status`),
+  retryPaymentCheckout: (sessionId: string) =>
+    request<import('@/types/payment').OrderPaymentInfo & { checkoutUrl: string; sessionId: string }>(
+      `/public/payment/checkout/${sessionId}/retry`,
+      { method: 'POST' }
+    ),
+  getAdminUi: (token: string) =>
+    request<import('@/types/adminUi').AdminUiCatalog>('/admin/ui', {}, token),
+  getSettingsNamespaces: (token: string) =>
+    request<import('@/types/settings').SettingsFormDefinition[]>('/admin/settings', {}, token),
+  getSettingsForm: (token: string, namespace: string) =>
+    request<import('@/types/settings').SettingsFormDefinition>(
+      `/admin/settings/${encodeURIComponent(namespace)}/schema`,
+      {},
+      token
+    ),
+  getSettings: (token: string, namespace: string) =>
+    request<Record<string, unknown>>(`/admin/settings/${encodeURIComponent(namespace)}`, {}, token),
+  updateSettings: (token: string, namespace: string, data: Record<string, unknown>) =>
+    request<Record<string, unknown>>(
+      `/admin/settings/${encodeURIComponent(namespace)}`,
+      { method: 'PUT', body: JSON.stringify(data) },
+      token
+    ),
   testPaymentProvider: (token: string, providerId: string) =>
-    request<{ ok: boolean; message?: string }>(`/modules/features/payment/admin/providers/${providerId}/test`, { method: 'POST' }, token),
+    request<{ ok: boolean; message?: string; checks?: Record<string, boolean | undefined> }>(
+      `/modules/features/payment/admin/providers/${providerId}/test`,
+      { method: 'POST' },
+      token
+    ),
+  getPaymentDashboard: (token: string) =>
+    request<import('@/types/paymentAdmin').PaymentDashboard>('/modules/features/payment/admin/dashboard', {}, token),
+  getPaymentProviders: (token: string) =>
+    request<import('@/types/paymentAdmin').PaymentProviderAdmin[]>('/modules/features/payment/admin/providers', {}, token),
+  setPaymentProviderEnabled: (token: string, providerId: string, enabled: boolean) =>
+    request<{ ok: boolean }>(
+      `/modules/features/payment/admin/providers/${providerId}/enabled`,
+      { method: 'PUT', body: JSON.stringify({ enabled }) },
+      token
+    ),
+  getPaymentMethodTypes: (token: string) =>
+    request<import('@/types/paymentAdmin').PaymentMethodTypeAdmin[]>(
+      '/modules/features/payment/admin/method-types',
+      {},
+      token
+    ),
+  savePaymentMethodTypes: (token: string, methodTypes: Record<string, unknown>) =>
+    request<import('@/types/paymentAdmin').PaymentMethodTypeAdmin[]>(
+      '/modules/features/payment/admin/method-types',
+      { method: 'PUT', body: JSON.stringify({ methodTypes }) },
+      token
+    ),
+  getPaymentList: (token: string, params?: { page?: number; provider?: string; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.provider) qs.set('provider', params.provider);
+    if (params?.status) qs.set('status', params.status);
+    const q = qs.toString();
+    return request<{ items: import('@/types/paymentAdmin').PaymentListItem[]; total: number; page: number; limit: number }>(
+      `/modules/features/payment/admin/payments${q ? `?${q}` : ''}`,
+      {},
+      token
+    );
+  },
+  getPaymentDetail: (token: string, paymentId: string) =>
+    request<Record<string, unknown>>(`/modules/features/payment/admin/payments/${paymentId}`, {}, token),
+  getPaymentLogs: (token: string, page = 1) =>
+    request<{ items: import('@/types/paymentAdmin').PaymentAuditLog[]; total: number }>(
+      `/modules/features/payment/admin/logs?page=${page}`,
+      {},
+      token
+    ),
+  getPaymentWebhooks: (token: string, page = 1) =>
+    request<{ items: Record<string, unknown>[]; total: number }>(
+      `/modules/features/payment/admin/webhooks?page=${page}`,
+      {},
+      token
+    ),
+  getPaymentHealth: (token: string) =>
+    request<import('@/types/paymentAdmin').PaymentProviderAdmin[]>('/modules/features/payment/admin/health', {}, token),
+  getPaymentStatistics: (token: string, period: 'today' | 'week' | 'month' = 'today') =>
+    request<import('@/types/paymentAdmin').PaymentStatistics>(
+      `/modules/features/payment/admin/statistics?period=${period}`,
+      {},
+      token
+    ),
+  getPaymentRefunds: (token: string, page = 1) =>
+    request<{ items: import('@/types/paymentAdmin').PaymentAuditLog[]; total: number }>(
+      `/modules/features/payment/admin/refunds?page=${page}`,
+      {},
+      token
+    ),
+  createPaymentRefund: (
+    token: string,
+    data: { providerId: string; transactionId: string; amountCents?: number; reason?: string; comment?: string; paymentId?: string }
+  ) =>
+    request<{ success: boolean; refundId?: string; error?: string }>(
+      '/modules/features/payment/admin/refunds',
+      { method: 'POST', body: JSON.stringify(data) },
+      token
+    ),
+  downloadPaymentExport: async (token: string, path: string, filename: string) => {
+    const url = `${API_URL}/api/modules/features/payment/admin/${path}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new ApiError(res.status, 'Export fehlgeschlagen');
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  },
+  testNotificationChannel: (token: string, channelId: string) =>
+    request<{ ok: boolean; message?: string }>(
+      `/modules/features/notifications/admin/channels/${channelId}/test`,
+      { method: 'POST' },
+      token
+    ),
+  testNotificationSmtp: (token: string) =>
+    request<{ ok: boolean; message?: string }>(
+      '/modules/features/notifications/admin/smtp/test',
+      { method: 'POST' },
+      token
+    ),
+  testPrinter: (token: string, slotId: string) =>
+    request<{ ok: boolean; message?: string }>(
+      `/modules/features/printer/admin/printers/${slotId}/test`,
+      { method: 'POST' },
+      token
+    ),
+  discoverPrinters: (token: string) =>
+    request<{ discovered: { host: string; port: number; type: string; reachable: boolean }[] }>(
+      '/modules/features/printer/admin/discover',
+      {},
+      token
+    ),
+  getPermissions: (token: string) =>
+    request<{ available: { key: string; description: string }[]; staff: string[] }>(
+      '/admin/permissions',
+      {},
+      token
+    ),
+  updateStaffPermissions: (token: string, permissions: string[]) =>
+    request<{ permissions: string[] }>(
+      '/admin/permissions/staff',
+      { method: 'PUT', body: JSON.stringify({ permissions }) },
+      token
+    ),
 };
 
 import type { Event, FoodItem, Order, User, UserRole, DashboardStats, PickupBoardOrder, OrderStatus } from '@/types';

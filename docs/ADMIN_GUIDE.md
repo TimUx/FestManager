@@ -9,19 +9,20 @@ Anleitung für Administratoren der Vereinsbestellplattform mit Vollzugriff auf a
 3. [Reverse Proxy (HTTPS)](#reverse-proxy-https)
 4. [Erste Schritte nach der Installation](#erste-schritte-nach-der-installation)
 5. [Administrationsbereich](#administrationsbereich)
-6. [Veranstaltungen verwalten](#veranstaltungen-verwalten)
-7. [Vorausbestellungen aktivieren](#vorausbestellungen-aktivieren)
-8. [Speisen verwalten](#speisen-verwalten)
-9. [Bestellungen überwachen](#bestellungen-überwachen)
-10. [Mitarbeiter & Rollen](#mitarbeiter--rollen)
-11. [Schalter & Einstellungen](#schalter--einstellungen)
-12. [Modulverwaltung](#modulverwaltung)
-13. [Online-Zahlung (Payment)](#online-zahlung-payment)
-14. [Abholboard einrichten](#abholboard-einrichten)
-15. [E-Mail-Benachrichtigungen](#e-mail-benachrichtigungen)
-16. [Checkliste am Veranstaltungstag](#checkliste-am-veranstaltungstag)
-17. [FAQ](#faq)
-18. [Troubleshooting](#troubleshooting)
+6. [Bestell-Einstellungen](#bestell-einstellungen)
+7. [E-Mail-Benachrichtigungen](#e-mail-benachrichtigungen)
+8. [Veranstaltungen verwalten](#veranstaltungen-verwalten)
+9. [Vorausbestellungen aktivieren](#vorausbestellungen-aktivieren)
+10. [Speisen verwalten](#speisen-verwalten)
+11. [Bestellungen überwachen](#bestellungen-überwachen)
+12. [Mitarbeiter & Rollen](#mitarbeiter--rollen)
+13. [Schalter & Einstellungen](#schalter--einstellungen)
+14. [Modulverwaltung](#modulverwaltung)
+15. [Online-Zahlung (Payment)](#online-zahlung-payment)
+16. [Abholboard einrichten](#abholboard-einrichten)
+17. [Checkliste am Veranstaltungstag](#checkliste-am-veranstaltungstag)
+18. [FAQ](#faq)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -149,7 +150,7 @@ docker compose up --build -d
 
 ### E-Mail (optional)
 
-E-Mail-Versand wird im Admin-Bereich unter **E-Mail** (`/admin/email`) konfiguriert – nicht mehr über `.env`.
+E-Mail-Versand wird im Admin-Bereich unter **Benachrichtigungen** (`/admin/settings/module.notifications`) konfiguriert – nicht über `.env`. Die Route `/admin/email` leitet automatisch weiter.
 
 | Feld | Beschreibung |
 |------|-------------|
@@ -174,15 +175,17 @@ Cloudflare Turnstile schützt die öffentliche Bestellseite vor automatisierten 
 
 ```env
 # MODULES_DIR=/app/modules          # Docker: Standard /app/modules
-# PAYMENT_ENCRYPTION_KEY=...        # Verschlüsselung von Payment-API-Keys
+# APP_ENCRYPTION_KEY=...            # Verschlüsselung von Secrets in der DB (min. 32 Zeichen)
 ```
 
 | Variable | Beschreibung |
 |----------|--------------|
 | `MODULES_DIR` | Pfad zu offiziellen Modulen (Docker-Image) |
-| `PAYMENT_ENCRYPTION_KEY` | AES-Schlüssel für verschlüsselte Stripe-Keys in der DB |
+| `APP_ENCRYPTION_KEY` | AES-Schlüssel für verschlüsselte API-Keys und Passwörter in der DB |
 
-Ohne `PAYMENT_ENCRYPTION_KEY` wird ein Fallback aus `JWT_SECRET` verwendet – in Produktion einen eigenen Schlüssel setzen.
+Payment- und SMTP-Einstellungen werden **nur in der Web-Oberfläche** gespeichert – nicht in `.env`.
+
+Ohne `APP_ENCRYPTION_KEY` wird ein Fallback aus `JWT_SECRET` verwendet – in Produktion einen eigenen Schlüssel setzen.
 
 ### Übersicht: Was muss vor dem Live-Betrieb geändert werden?
 
@@ -192,10 +195,9 @@ Ohne `PAYMENT_ENCRYPTION_KEY` wird ein Fallback aus `JWT_SECRET` verwendet – i
 | `JWT_SECRET` | ✅ Ja |
 | `CORS_ORIGIN` / `VITE_API_URL` / `VITE_WS_URL` | ✅ Ja (auf echte Domain) |
 | Admin-Passwort (nach Seed) | ✅ Ja |
-| SMTP (unter `/admin/email`) | Optional |
-| Turnstile | Optional |
+| SMTP (Benachrichtigungen) | Optional |
 | Payment-Modul | Optional (nur bei Onlinezahlung) |
-| `PAYMENT_ENCRYPTION_KEY` | Optional (empfohlen bei Payment) |
+| `APP_ENCRYPTION_KEY` | Optional (empfohlen bei Payment/SMTP) |
 
 ---
 
@@ -524,9 +526,11 @@ Der **Administrationsbereich** (`/admin`) ist vom Mitarbeiterbereich getrennt un
 | `/admin/veranstaltungen` | Veranstaltungen verwalten |
 | `/admin/speisen` | Speisekarte pflegen |
 | `/admin/bestellung` | Pflichtfelder & Stornierungsfrist |
-| `/admin/email` | SMTP / E-Mail-Versand |
+| `/admin/settings/module.notifications` | E-Mail & Benachrichtigungskanäle |
 | `/admin/module` | Modulverwaltung (installieren, aktivieren) |
-| `/admin/module/payment` | Payment-Einstellungen (nur wenn Modul aktiviert) |
+| `/admin/payment` | Payment-Administration (Dashboard, Provider, Zahlungen) |
+
+Legacy-Weiterleitungen: `/admin/email` → Benachrichtigungen · `/admin/module/payment` → `/admin/payment`
 
 Der **Mitarbeiterbereich** (`/mitarbeiter`) bleibt für den operativen Betrieb: Dashboard, Küche, Abholung, Bestellung, Bestellübersicht.
 
@@ -541,7 +545,8 @@ Der **Mitarbeiterbereich** (`/mitarbeiter`) bleibt für den operativen Betrieb: 
 | Veranstaltungen | ![Veranstaltungen](screenshots/12-veranstaltungen.png) |
 | Speisen | ![Speisen](screenshots/11-speisenverwaltung.png) |
 | Modulverwaltung | ![Module](screenshots/20-modulverwaltung.png) |
-| Payment | ![Payment](screenshots/21-payment-einstellungen.png) |
+| Payment-Admin | ![Payment-Admin](screenshots/21-payment-admin.png) |
+| Payment-Einstellungen | ![Payment-Einstellungen](screenshots/22-payment-einstellungen.png) |
 
 ---
 
@@ -574,15 +579,40 @@ Kunden stornieren über die Statusseite (`/status/:orderId`) mit Nachnamen zur B
 
 ---
 
-## E-Mail-Einstellungen
+## E-Mail-Benachrichtigungen
 
-Navigieren Sie zu **E-Mail** (`/admin/email`).
+Navigieren Sie zu **Benachrichtigungen** (`/admin/settings/module.notifications`). Legacy-Route `/admin/email` leitet automatisch weiter.
 
 ![E-Mail-Einstellungen](screenshots/19-email-einstellungen.png)
 
+### SMTP-Server
+
 Tragen Sie die Zugangsdaten Ihres SMTP-Servers ein. Das Passwort wird in der Datenbank gespeichert und beim Laden nicht angezeigt – ein leeres Passwortfeld beim Speichern lässt das bestehende Passwort unverändert.
 
+| Feld | Beschreibung |
+|------|-------------|
+| SMTP-Server | Hostname des Mailservers (leer = kein Versand) |
+| Port | Üblich: 587 (STARTTLS) oder 465 (SSL) |
+| Benutzername / Passwort | Falls der Server Authentifizierung verlangt |
+| Absender-Adresse | z. B. `noreply@ihr-verein.de` |
+
+Weitere Kanäle (ntfy, Discord, Slack, Teams) konfigurieren Sie auf derselben Seite.
+
 Die Links in Bestätigungs-E-Mails verwenden die in `CORS_ORIGIN` hinterlegte öffentliche Frontend-URL.
+
+### Inhalt der E-Mails
+
+Wenn Kunden eine E-Mail angeben (Pflichtfeld oder optional), erhalten sie eine Bestellbestätigung mit:
+
+- Abholnummer und Veranstaltungstag
+- Vereinsdaten (Name, Kontaktdaten des Verkäufers)
+- Bestellte Gerichte und Gesamtpreis
+- Rechtlicher Hinweis zum verbindlichen Kaufvertrag und zur Abrechnung nicht abgeholter Bestellungen
+- Link zur Status- und Stornierungsseite
+
+Bei Stornierung erhalten Kunden zusätzlich eine **Stornierungsbestätigung** mit stornierten Gerichten, Zeitpunkt der Stornierung und Hinweis zur Vertragsaufhebung (sowohl bei Selbststornierung als auch bei Stornierung durch Mitarbeiter).
+
+---
 
 ## Veranstaltungen verwalten
 
@@ -685,7 +715,7 @@ Zeigt live:
 
 ![Bestellungen](screenshots/10-bestellungen.png)
 
-Alle Bestellungen chronologisch mit Statuswechsel per Klick:
+Alle Bestellungen chronologisch – mit **Name, E-Mail und Telefonnummer** (bei Online-Bestellungen) für Rückfragen.
 
 ```
 Neu → In Bearbeitung → Fertig → Abgeholt
@@ -741,7 +771,7 @@ Unter **Module** (`/admin/module`) verwalten Sie optionale Erweiterungen der Pla
 | Bondruck (`printer`) | Geplant | Automatischer Küchen- und Kassenbondruck |
 | Gutscheine (`voucher`) | Geplant | Gutscheinverwaltung (benötigt Payment) |
 | Rabatte (`discount`) | Geplant | Rabattaktionen und Sonderpreise |
-| Benachrichtigungen (`notifications`) | Geplant | E-Mail, Push, ntfy |
+| **Benachrichtigungen** (`notifications`) | Vollständig | SMTP, ntfy, Discord, Slack, Teams |
 | Auswertungen (`analytics`) | Geplant | Statistiken und Berichte |
 | Treueprogramm (`loyalty`) | Geplant | Punkte und Belohnungen |
 | QR-Code Einlass (`checkin`) | Geplant | Einlasskontrolle per QR-Code |
@@ -777,15 +807,31 @@ Manche Module benötigen andere Module. Beispiel: **Gutscheine** erfordert **Onl
 
 ## Online-Zahlung (Payment)
 
-Das Payment-Modul ermöglicht **Onlinezahlungen** bei Vorbestellungen. Es muss zuerst unter **Module** installiert und aktiviert werden. Anschließend erscheint der Menüpunkt **Payment** (`/admin/module/payment`).
+Das Payment-Modul ermöglicht **Onlinezahlungen** bei Vorbestellungen und im Kassenmodus. Nach Installation und Aktivierung erscheint **Administration → Module → Payment** (`/admin/payment`).
 
-![Payment-Einstellungen](screenshots/21-payment-einstellungen.png)
+![Payment-Administration](screenshots/21-payment-admin.png)
+
+### Admin-Bereich Payment
+
+| Tab | Inhalt |
+|-----|--------|
+| **Übersicht** | Dashboard: Umsatz, offene/fehlgeschlagene Zahlungen, Health |
+| **Provider** | Stripe & weitere Anbieter, Verbindung testen, aktivieren |
+| **Zahlungsarten** | Welche Methoden Besuchern angezeigt werden (Smart Payment) |
+| **Einstellungen** | API-Schlüssel (verschlüsselt, maskiert) |
+| **Zahlungen** | Liste, Filter, Detail, Export |
+| **Refunds** | Rückerstattungen mit Audit-Log |
+| **Logs / Webhooks / Health / Statistiken** | Monitoring |
+
+![Payment-Einstellungen](screenshots/22-payment-einstellungen.png)
 
 ### Voraussetzungen
 
 1. Modul **Online-Zahlung** installieren und aktivieren
 2. Stripe-Konto (Test oder Live) einrichten
-3. In `.env` optional `PAYMENT_ENCRYPTION_KEY` setzen (verschlüsselte Speicherung der API-Keys)
+3. Optional: `APP_ENCRYPTION_KEY` in `.env` für verschlüsselte Speicherung
+
+**Wichtig:** Stripe-Keys werden **nur in der Web-Oberfläche** konfiguriert – nicht in `.env` oder Docker-Compose.
 
 ### Provider
 
@@ -796,15 +842,16 @@ Das Payment-Modul ermöglicht **Onlinezahlungen** bei Vorbestellungen. Es muss z
 
 ### Stripe einrichten
 
-1. Öffnen Sie **Administration → Module → Payment**
-2. Schalten Sie **Stripe** auf **Aktiv**
+1. Öffnen Sie **Administration → Module → Payment → Einstellungen**
+2. Schalten Sie **Stripe aktivieren** ein
 3. Tragen Sie ein:
-   - **Publishable Key** (`pk_test_…` oder `pk_live_…`)
-   - **Secret Key** (`sk_test_…` oder `sk_live_…`)
-   - **Webhook Secret** (`whsec_…`)
-4. **Sandbox / Testmodus** für Tests aktiv lassen, für Live-Betrieb deaktivieren
-5. Klicken Sie auf **Testen**, um die Verbindung zu prüfen
-6. Speichern
+   - **Öffentlicher API-Schlüssel** (`pk_test_…` oder `pk_live_…`)
+   - **Geheimer API-Schlüssel** (`sk_test_…` oder `sk_live_…`) – wird maskiert gespeichert
+   - **Webhook-Signatur** (`whsec_…`) – Hinweistext erklärt die Bedeutung
+4. **Testmodus (Sandbox)** für Tests aktiv lassen, für Live-Betrieb deaktivieren
+5. Unter Tab **Provider** auf **Verbindung testen** klicken
+6. Unter Tab **Zahlungsarten** gewünschte Methoden aktivieren (z. B. Kreditkarte, Apple Pay)
+7. Speichern
 
 ### Webhook in Stripe
 
@@ -814,14 +861,15 @@ Tragen Sie im Stripe-Dashboard unter **Webhooks** die angezeigte URL ein:
 https://ihre-domain.de/api/modules/features/payment/webhooks/stripe
 ```
 
-Ereignis: `checkout.session.completed`
+Ereignisse: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`
 
 ### Ablauf mit Onlinezahlung
 
-1. Kunde bestellt auf der öffentlichen Bestellseite
-2. Nach dem Absenden wird er zur Stripe-Checkout-Seite weitergeleitet
+1. Kunde bestellt auf der öffentlichen Bestellseite (Smart Payment: Bar oder Online)
+2. Bei Onlinewahl: QR-Code / Link zur Zahlung, Live-Status auf der Bestellseite
 3. Nach erfolgreicher Zahlung erscheint die Bestellung in der Küche
-4. Unbezahlte Online-Bestellungen werden **nicht** an die Küche übergeben
+4. Im Kassenmodus: Vollbild-QR für den Kunden, Barzahlung weiterhin Standard
+5. Unbezahlte Online-Bestellungen werden **nicht** an die Küche übergeben
 
 ### Ablauf ohne Onlinezahlung (Standard)
 
@@ -862,24 +910,6 @@ Das Abholboard (`/abholboard`) ist für Fernseher oder Monitore gedacht.
 - Nur die Abholnummer (groß und gut lesbar)
 - Verschwindet automatisch nach Abholung
 - Akustisches Signal bei neuen fertigen Bestellungen
-
----
-
-## E-Mail-Benachrichtigungen
-
-Wenn Kunden eine E-Mail angeben (Pflichtfeld oder optional), erhalten sie eine Bestellbestätigung mit:
-
-- Abholnummer und Veranstaltungstag
-- Vereinsdaten (Name, Kontaktdaten des Verkäufers)
-- Bestellte Gerichte und Gesamtpreis
-- Rechtlicher Hinweis zum verbindlichen Kaufvertrag und zur Abrechnung nicht abgeholter Bestellungen
-- Link zur Status- und Stornierungsseite
-
-Bei Stornierung erhalten Kunden zusätzlich eine **Stornierungsbestätigung** mit stornierten Gerichten, Zeitpunkt der Stornierung und Hinweis zur Vertragsaufhebung (sowohl bei Selbststornierung als auch bei Stornierung durch Mitarbeiter).
-
-Die Links in E-Mails verwenden die in `CORS_ORIGIN` hinterlegte öffentliche Frontend-URL – setzen Sie diese daher auf die tatsächliche Domain (z. B. `https://bestellung.sv-musterstadt.de`).
-
-SMTP-Zugangsdaten konfigurieren Sie unter `/admin/email` – siehe Abschnitt [E-Mail-Einstellungen](#e-mail-einstellungen).
 
 ---
 
@@ -986,7 +1016,7 @@ Nein. Module sind optional. Vereine mit reiner Barzahlung können alle Module de
 
 ### E-Mails kommen nicht an
 
-1. SMTP-Einstellungen unter `/admin/email` prüfen
+1. SMTP-Einstellungen unter `/admin/settings/module.notifications` prüfen
 2. Backend nach Änderung neu starten: `docker compose up -d backend`
 3. Logs prüfen: `docker compose logs backend | grep -i mail`
 4. Spam-Ordner des Empfängers prüfen

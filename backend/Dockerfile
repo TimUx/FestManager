@@ -28,10 +28,10 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY modules ./modules/
-RUN mkdir -p plugins
+RUN mkdir -p plugins uploads && addgroup -g 1001 app && adduser -u 1001 -G app -D app && chown -R app:app /app
 
-RUN mkdir -p uploads
+USER app
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push && node dist/src/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/index.js"]

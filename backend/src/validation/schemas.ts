@@ -31,6 +31,7 @@ export const createEventSchema = z.object({
   onlineOrdersActive: z.boolean().optional(),
   cashierActive: z.boolean().optional(),
   ordersClosed: z.boolean().optional(),
+  activateOnCreate: z.boolean().optional(),
 });
 
 export const updateEventSchema = createEventSchema.partial();
@@ -67,12 +68,18 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().positive('Menge muss mindestens 1 sein'),
 });
 
+export const createOrderCheckoutSchema = z.object({
+  paymentMethodId: z.string().min(1, 'Zahlungsart erforderlich'),
+});
+
 export const createOnlineOrderSchema = z.object({
   firstName: z.string().optional().or(z.literal('')),
   lastName: z.string().optional().or(z.literal('')),
   email: z.string().email('Ungültige E-Mail').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   items: z.array(orderItemSchema).min(1, 'Mindestens ein Gericht erforderlich'),
+  /** Interne Methoden-ID für Onlinezahlung (vom PaymentService) */
+  paymentMethodId: z.string().optional(),
   _hp: z.string().optional(),
   formStartedAt: z.number().int().positive(),
   turnstileToken: z.string().optional(),
@@ -80,6 +87,11 @@ export const createOnlineOrderSchema = z.object({
 
 export const createCashierOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, 'Mindestens ein Gericht erforderlich'),
+  paymentMethodId: z.string().optional(),
+});
+
+export const abortCashierPaymentSchema = z.object({
+  sessionId: z.string().min(1, 'Session erforderlich'),
 });
 
 export const updateOrderStatusSchema = z.object({
@@ -93,6 +105,13 @@ export const lookupOrderSchema = z.object({
 
 export const lookupByNumberSchema = z.object({
   orderNumber: z.coerce.number().int().positive(),
+  lastName: z.string().min(1, 'Nachname erforderlich'),
+});
+
+export const refundPaymentSchema = z.object({
+  transactionId: z.string().min(1, 'Transaktions-ID erforderlich'),
+  providerId: z.string().min(1, 'Provider erforderlich'),
+  amountCents: z.number().int().positive().optional(),
 });
 
 export const cancelOrderSchema = z.object({

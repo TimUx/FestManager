@@ -1,0 +1,118 @@
+import type { ModuleManager } from '../ModuleManager';
+import type { ModuleRegistry } from '../ModuleRegistry';
+import type { HealthService } from '../HealthService';
+import type { FeatureContext } from '../types';
+import type { QaRegistry } from './QaRegistry';
+
+export interface ModuleScenario {
+  id: string;
+  label: string;
+  activeModuleIds: string[];
+}
+
+export interface ModuleScenarioResult {
+  scenarioId: string;
+  label: string;
+  ok: boolean;
+  health: Record<string, { status: string; message?: string }>;
+  error?: string;
+}
+
+/** Erzeugt und führt Modul-Szenarien dynamisch über ModuleDiscovery aus. */
+export class ModuleScenarioRunner {
+  constructor(
+    private readonly qaRegistry: QaRegistry,
+    private readonly moduleManager: ModuleManager,
+    private readonly moduleRegistry: ModuleRegistry,
+    private readonly healthService: HealthService,
+    private readonly featureContext: FeatureContext
+  ) {}
+
+  buildScenarios(): ModuleScenario[] {
+    const moduleIds = this.qaRegistry.scenarioModuleIds();
+    const scenarios: ModuleScenario[] = [
+      { id: 'none', label: 'Keine Module aktiviert', activeModuleIds: [] },
+    ];
+    for (const moduleId of moduleIds) {
+      scenarios.push({
+        id: `only-${moduleId}`,
+        label: `Nur ${moduleId}`,
+        activeModuleIds: [moduleId],
+      });
+    }
+    scenarios.push({
+      id: 'all',
+      label: 'Alle offiziellen Module',
+      activeModuleIds: moduleIds,
+    });
+    return scenarios;
+  }
+
+  async runScenario(scenario: ModuleScenario): Promise<ModuleScenarioResult> {
+    try {
+      await this.applyScenario(scenario.activeModuleIds);
+      const health = await this.collectHealth();
+      const allOk = Object.values(health).every((h) => h.status !== 'unhealthy');
+      return {
+        scenarioId: scenario.id,
+        label: scenario.label,
+        ok: allOk,
+        health,
+      };
+    } catch (err) {
+      return {
+        scenarioId: scenario.id,
+        label: scenario.label,
+        ok: false,
+        health: {},
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  async runAll(): Promise<ModuleScenarioResult[]> {
+    const results: ModuleScenarioResult[] = [];
+    for (const scenario of this.buildScenarios()) {
+      results.push(await this.runScenario(scenario));
+    }
+    return results;
+  }
+
+  private async applyScenario(activeIds: string[]): Promise<void> {
+    const moduleIds = this.qaRegistry.scenarioModuleIds();
+
+    for (const moduleId of moduleIds) {
+      const row = await this.moduleRegistry.getDbRow(moduleId);
+      if (row?.enabled) {
+        await this.moduleManager.deactivateModule(moduleId);
+      }
+    }
+
+    for (const moduleId of moduleIds) {
+      const row = await this.moduleRegistry.getDbRow(moduleId);
+      if (!row?.installed) {
+        await this.moduleManager.installModule(moduleId);
+      }
+    }
+
+    for (const moduleId of activeIds) {
+      const row = await this.moduleRegistry.getDbRow(moduleId);
+      if (!row?.enabled) {
+        await this.moduleManager.activateModule(moduleId);
+      }
+    }
+  }
+
+  private async collectHealth(): Promise<Record<string, { status: string; message?: string }>> {
+    const out: Record<string, { status: string; message?: string }> = {};
+    out.core = { status: 'healthy', message: 'Plattform bereit' };
+
+    for (const mod of this.moduleRegistry.getModules()) {
+      const row = await this.moduleRegistry.getDbRow(mod.id);
+      if (!row?.enabled) continue;
+      const result = await this.healthService.checkModule(mod.id, mod, this.featureContext);
+      out[mod.id] = { status: result.status, message: result.message };
+    }
+    return out;
+  }
+}

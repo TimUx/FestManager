@@ -1,17 +1,21 @@
 import type { FeatureContext } from '../../../src/module-system/types';
 import type { PayableResource } from '../../../src/module-system/extension-points';
-import type { PaymentProvider, PaymentSession, PaymentResult, RefundResult } from '../PaymentProvider';
+import type { PaymentProvider, PaymentSession, PaymentResult, RefundResult, ProviderHealthResult } from '../PaymentProvider';
+import { PAYMENT_FEATURES } from '../PaymentProvider';
 import type { PaymentConfig } from '../config';
 
 abstract class PlaceholderProvider implements PaymentProvider {
   abstract readonly id: string;
   abstract readonly name: string;
   abstract readonly configKey: keyof PaymentConfig;
+  readonly implemented = false;
 
-  isConfigured(config: Record<string, unknown>): boolean {
-    const c = config as PaymentConfig;
-    const section = c[this.configKey] as { enabled?: boolean } | undefined;
-    return Boolean(section?.enabled);
+  supports(_feature: string): boolean {
+    return false;
+  }
+
+  isConfigured(_config: Record<string, unknown>): boolean {
+    return false;
   }
 
   async createCheckoutSession(
@@ -19,6 +23,14 @@ abstract class PlaceholderProvider implements PaymentProvider {
     _resource: PayableResource
   ): Promise<PaymentSession> {
     throw new Error(`${this.name} ist noch nicht implementiert`);
+  }
+
+  async cancelCheckoutSession(): Promise<PaymentSession> {
+    throw new Error(`${this.name} ist noch nicht implementiert`);
+  }
+
+  async verifyWebhookSignature(): Promise<{ valid: boolean; error?: string }> {
+    return { valid: false, error: 'Webhook nicht implementiert' };
   }
 
   async handleWebhook(): Promise<PaymentResult> {
@@ -29,8 +41,8 @@ abstract class PlaceholderProvider implements PaymentProvider {
     return { success: false, error: 'Rückerstattung nicht implementiert' };
   }
 
-  async healthCheck(_context: FeatureContext): Promise<{ ok: boolean; message?: string }> {
-    return { ok: false, message: `${this.name} – Platzhalter, noch nicht verfügbar` };
+  async healthCheck(_context: FeatureContext): Promise<ProviderHealthResult> {
+    return { ok: false, message: `${this.name} – Platzhalter, noch nicht verfügbar`, configValid: false };
   }
 }
 

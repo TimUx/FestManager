@@ -1,24 +1,34 @@
 import { clubRepository, DEFAULT_CLUB } from '../repositories/clubRepository';
 import { emitClubUpdate } from '../socket';
-import { featureHooks, CORE_HOOKS } from '../module-system';
+import { hookSystem } from '../platform/bootstrap';
+import { CORE_HOOKS } from '../platform/types';
+import { settingsService } from '../platform/bootstrap';
+import { getInstalledModuleIds } from '../core/settings/assertModuleSettingsAccessible';
+import {
+  CORE_CLUB_NAMESPACE,
+  CORE_EMAIL_NAMESPACE,
+  CORE_ORDER_NAMESPACE,
+  moduleSettingsNamespace,
+} from '../platform/settings/SettingsNamespaces';
+import { getByPath } from '../platform/settings/pathUtils';
 
 type ClubSettingsRow = Awaited<ReturnType<typeof clubRepository.get>>;
 
-function mapClub(settings: ClubSettingsRow) {
+function mapClub(values: Record<string, unknown>) {
   return {
-    clubName: settings.clubName || DEFAULT_CLUB.clubName,
-    description: settings.description || DEFAULT_CLUB.description,
-    contactName: settings.contactName || DEFAULT_CLUB.contactName,
-    email: settings.email || DEFAULT_CLUB.email,
-    phone: settings.phone || DEFAULT_CLUB.phone,
-    address: settings.address || DEFAULT_CLUB.address,
-    website: settings.website || DEFAULT_CLUB.website,
-    logoUrl: settings.logoUrl,
-    orderFieldFirstNameRequired: settings.orderFieldFirstNameRequired,
-    orderFieldLastNameRequired: settings.orderFieldLastNameRequired,
-    orderFieldEmailRequired: settings.orderFieldEmailRequired,
-    orderFieldPhoneRequired: settings.orderFieldPhoneRequired,
-    cancellationDeadlineHours: settings.cancellationDeadlineHours,
+    clubName: String(values.clubName ?? DEFAULT_CLUB.clubName),
+    description: (values.description as string | null) ?? DEFAULT_CLUB.description,
+    contactName: (values.contactName as string | null) ?? DEFAULT_CLUB.contactName,
+    email: (values.email as string | null) ?? DEFAULT_CLUB.email,
+    phone: (values.phone as string | null) ?? DEFAULT_CLUB.phone,
+    address: (values.address as string | null) ?? DEFAULT_CLUB.address,
+    website: (values.website as string | null) ?? DEFAULT_CLUB.website,
+    logoUrl: values.logoUrl as string | null | undefined,
+    orderFieldFirstNameRequired: Boolean(values.orderFieldFirstNameRequired ?? true),
+    orderFieldLastNameRequired: Boolean(values.orderFieldLastNameRequired ?? true),
+    orderFieldEmailRequired: Boolean(values.orderFieldEmailRequired ?? false),
+    orderFieldPhoneRequired: Boolean(values.orderFieldPhoneRequired ?? false),
+    cancellationDeadlineHours: Number(values.cancellationDeadlineHours ?? 24),
   };
 }
 
@@ -31,63 +41,95 @@ export function mapOrderFieldConfig(settings: ClubSettingsRow) {
   };
 }
 
-export function mapEmailSettings(settings: ClubSettingsRow) {
+export function mapEmailSettings(values: Record<string, unknown>) {
+  const smtpPass = values.smtpPass ?? getByPath(values, 'smtp.pass');
+  const smtpHost = values.smtpHost ?? getByPath(values, 'smtp.host');
+  const smtpPort = values.smtpPort ?? getByPath(values, 'smtp.port');
+  const smtpUser = values.smtpUser ?? getByPath(values, 'smtp.user');
+  const smtpFrom = values.smtpFrom ?? getByPath(values, 'smtp.from');
+  const smtpEnabled = values.smtpEnabled ?? getByPath(values, 'smtp.enabled');
   return {
-    smtpHost: settings.smtpHost || '',
-    smtpPort: settings.smtpPort ?? 587,
-    smtpUser: settings.smtpUser || '',
-    smtpFrom: settings.smtpFrom || '',
-    smtpPassConfigured: Boolean(settings.smtpPass),
-    smtpEnabled: Boolean(settings.smtpHost?.trim()),
-    emailCustomText: settings.emailCustomText || '',
+    smtpHost: String(smtpHost ?? ''),
+    smtpPort: Number(smtpPort ?? 587),
+    smtpUser: String(smtpUser ?? ''),
+    smtpFrom: String(smtpFrom ?? ''),
+    smtpPassConfigured: Boolean(smtpPass),
+    smtpEnabled: Boolean(smtpEnabled ?? String(smtpHost ?? '').trim()),
+    emailCustomText: String(values.emailCustomText ?? ''),
   };
+}
+
+async function usesNotificationsModule(): Promise<boolean> {
+  const installed = await getInstalledModuleIds();
+  return installed.has('notifications');
 }
 
 export const clubService = {
   async getSettings() {
-    return clubRepository.get();
+    const club = await settingsService.getDecryptedValues(CORE_CLUB_NAMESPACE);
+    const order = await settingsService.getDecryptedValues(CORE_ORDER_NAMESPACE);
+    const email = (await usesNotificationsModule())
+      ? await settingsService.getDecryptedValues(moduleSettingsNamespace('notifications'))
+      : await settingsService.getDecryptedValues(CORE_EMAIL_NAMESPACE);
+    return { ...club, ...order, ...email } as Awaited<ReturnType<typeof clubRepository.get>>;
   },
 
   async getPublic() {
-    const settings = await clubRepository.get();
-    return mapClub(settings);
+    const values = await settingsService.getDecryptedValues(CORE_CLUB_NAMESPACE);
+    const order = await settingsService.getDecryptedValues(CORE_ORDER_NAMESPACE);
+    return mapClub({ ...values, ...order });
   },
 
   async getOrderSettings() {
-    const settings = await clubRepository.get();
+    const order = await settingsService.getDecryptedValues(CORE_ORDER_NAMESPACE);
     return {
-      fields: mapOrderFieldConfig(settings),
-      cancellationDeadlineHours: settings.cancellationDeadlineHours,
+      fields: {
+        firstNameRequired: Boolean(order.orderFieldFirstNameRequired ?? true),
+        lastNameRequired: Boolean(order.orderFieldLastNameRequired ?? true),
+        emailRequired: Boolean(order.orderFieldEmailRequired ?? false),
+        phoneRequired: Boolean(order.orderFieldPhoneRequired ?? false),
+      },
+      cancellationDeadlineHours: Number(order.cancellationDeadlineHours ?? 24),
     };
   },
 
   async getEmailSettings() {
-    const settings = await clubRepository.get();
-    return mapEmailSettings(settings);
+    if (await usesNotificationsModule()) {
+      const values = await settingsService.getValues(moduleSettingsNamespace('notifications'));
+      return mapEmailSettings(values);
+    }
+    const values = await settingsService.getValues(CORE_EMAIL_NAMESPACE);
+    return mapEmailSettings(values);
   },
 
-  async updateEmailSettings(data: {
-    smtpHost?: string | null;
-    smtpPort?: number;
-    smtpUser?: string | null;
-    smtpPass?: string | null;
-    smtpFrom?: string | null;
-    emailCustomText?: string | null;
-  }) {
-    const update: Parameters<typeof clubRepository.update>[0] = {};
+  async updateEmailSettings(data: Record<string, unknown>) {
+    if (await usesNotificationsModule()) {
+      const smtp: Record<string, unknown> = {};
+      if (data.smtpHost !== undefined) smtp.host = data.smtpHost;
+      if (data.smtpPort !== undefined) smtp.port = data.smtpPort;
+      if (data.smtpUser !== undefined) smtp.user = data.smtpUser;
+      if (data.smtpPass !== undefined) smtp.pass = data.smtpPass;
+      if (data.smtpFrom !== undefined) smtp.from = data.smtpFrom;
+      if (Object.keys(smtp).length > 0) smtp.enabled = true;
 
-    if (data.smtpHost !== undefined) update.smtpHost = data.smtpHost?.trim() || null;
-    if (data.smtpPort !== undefined) update.smtpPort = data.smtpPort;
-    if (data.smtpUser !== undefined) update.smtpUser = data.smtpUser?.trim() || null;
-    if (data.smtpFrom !== undefined) update.smtpFrom = data.smtpFrom?.trim() || null;
-    if (data.emailCustomText !== undefined) update.emailCustomText = data.emailCustomText?.trim() || null;
-    if (data.smtpPass !== undefined && data.smtpPass !== '') {
-      update.smtpPass = data.smtpPass;
+      const patch: Record<string, unknown> = {};
+      if (Object.keys(smtp).length > 0) patch.smtp = smtp;
+      if (data.emailCustomText !== undefined) patch.emailCustomText = data.emailCustomText;
+
+      const settings = await settingsService.setValues(
+        moduleSettingsNamespace('notifications'),
+        patch,
+        { partial: true }
+      );
+      const mapped = mapEmailSettings(settings);
+      hookSystem.emitAsync(CORE_HOOKS.SETTINGS_CHANGED, { type: 'email', settings: mapped });
+      return mapped;
     }
 
-    const settings = await clubRepository.update(update);
-    featureHooks.emitAsync(CORE_HOOKS.SETTINGS_CHANGED, { type: 'email', settings: mapEmailSettings(settings) });
-    return mapEmailSettings(settings);
+    const settings = await settingsService.setValues(CORE_EMAIL_NAMESPACE, data, { partial: true });
+    const mapped = mapEmailSettings(settings);
+    hookSystem.emitAsync(CORE_HOOKS.SETTINGS_CHANGED, { type: 'email', settings: mapped });
+    return mapped;
   },
 
   async update(data: {
@@ -105,10 +147,29 @@ export const clubService = {
     orderFieldPhoneRequired?: boolean;
     cancellationDeadlineHours?: number;
   }) {
-    const settings = await clubRepository.update(data);
-    const mapped = mapClub(settings);
+    const clubData: Record<string, unknown> = {};
+    const orderData: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (key.startsWith('orderField') || key === 'cancellationDeadlineHours') {
+        orderData[key] = value;
+      } else {
+        clubData[key] = value;
+      }
+    }
+
+    if (Object.keys(clubData).length > 0) {
+      await settingsService.setValues(CORE_CLUB_NAMESPACE, clubData, { partial: true });
+    }
+    if (Object.keys(orderData).length > 0) {
+      await settingsService.setValues(CORE_ORDER_NAMESPACE, orderData, { partial: true });
+    }
+
+    const clubValues = await settingsService.getDecryptedValues(CORE_CLUB_NAMESPACE);
+    const orderValues = await settingsService.getDecryptedValues(CORE_ORDER_NAMESPACE);
+    const mapped = mapClub({ ...clubValues, ...orderValues });
     emitClubUpdate(mapped);
-    featureHooks.emitAsync(CORE_HOOKS.SETTINGS_CHANGED, { type: 'club', settings: mapped });
+    hookSystem.emitAsync(CORE_HOOKS.SETTINGS_CHANGED, { type: 'club', settings: mapped });
     return mapped;
   },
 };

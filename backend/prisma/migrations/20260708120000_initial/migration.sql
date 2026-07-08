@@ -1,0 +1,1 @@
+-- Baseline: bestehende Installationen nutzen prisma migrate resolve --applied 20260708120000_initial

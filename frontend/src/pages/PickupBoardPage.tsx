@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Typography, keyframes } from '@mui/material';
 import { api } from '@/services/api';
-import { getSocket, joinEvent, onOrderUpdated } from '@/services/socket';
+import { getSocket, joinEvent, onOrderUpdated, configureSocketAuth, joinPickupBoard } from '@/services/socket';
 import { PickupBoardOrder } from '@/types';
 
 const fadeIn = keyframes`
@@ -16,20 +16,21 @@ const slideOut = keyframes`
 
 export function PickupBoardPage() {
   const [orders, setOrders] = useState<PickupBoardOrder[]>([]);
+  const [error, setError] = useState('');
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const prevCount = useRef(0);
 
   const loadOrders = () => {
     api.getPickupBoard()
       .then(setOrders)
-      .catch(() => {});
+      .catch((err) => setError(err instanceof Error ? err.message : 'Abholboard nicht erreichbar'));
   };
 
   useEffect(() => {
     loadOrders();
     api.getPublicEvent().then((event) => {
-      joinEvent(event.id);
-    }).catch(() => {});
+      joinPickupBoard(event.id);
+    }).catch((err) => setError(err instanceof Error ? err.message : 'Keine Veranstaltung'));
 
     const unsub = onOrderUpdated(() => loadOrders());
     const interval = setInterval(loadOrders, 10000);
@@ -84,10 +85,15 @@ export function PickupBoardPage() {
         variant="h2"
         align="center"
         fontWeight={800}
-        sx={{ mb: 4, fontSize: { xs: '2rem', md: '3rem' } }}
+        sx={{ mb: 2, fontSize: { xs: '2rem', md: '3rem' } }}
       >
         Abholbereit
       </Typography>
+      {error && (
+        <Typography variant="body1" align="center" color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
 
       <Box
         sx={{

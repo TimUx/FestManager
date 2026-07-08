@@ -6,10 +6,12 @@ import {
   Box,
   Container,
   Avatar,
+  Button,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import SearchIcon from '@mui/icons-material/Search';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useClub } from '@/contexts/ClubContext';
 import { Link } from 'react-router-dom';
@@ -51,6 +53,16 @@ export function PublicLayout({ children, fullWidth = false, fillHeight = false }
           >
             {club.clubName}
           </Typography>
+          <Button
+            component={Link}
+            to="/status"
+            color="inherit"
+            size="small"
+            startIcon={<SearchIcon />}
+            sx={{ mr: 1, display: { xs: 'none', sm: 'inline-flex' } }}
+          >
+            Bestellstatus
+          </Button>
           <IconButton onClick={toggleMode} color="inherit" aria-label="Design wechseln">
             {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>

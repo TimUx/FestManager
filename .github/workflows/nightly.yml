@@ -1,0 +1,80 @@
+name: Nightly QA
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: postgresql://verein:verein_secret@localhost:5432/vereinsbestellung
+  JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long
+  APP_ENCRYPTION_KEY: ci-test-encryption-key-32chars
+  CORS_ORIGIN: http://localhost:5173
+  QA_API_BASE: http://localhost:3001/api
+  QA_FRONTEND_BASE: http://localhost:5173
+  QA_WORKFLOW: nightly
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: Full unit suite
+        run: npm run qa:unit
+
+      - name: Start CI stack
+        run: |
+          docker compose -f docker-compose.ci.yml up -d --build
+          npm run qa:wait
+
+      - name: Large database seed (1000 orders)
+        run: |
+          cd backend && npx prisma db push && npm run seed
+          npm run qa:seed:nightly
+
+      - name: Module scenarios (all modules)
+        run: npm run qa:module-scenarios
+
+      - name: API & integration
+        run: npm run qa:api
+
+      - name: Performance
+        run: npm run qa:performance
+
+      - name: Security
+        run: npm run qa:security
+
+      - name: Demo E2E (50 orders)
+        run: |
+          npm run qa:seed:demo
+          npx playwright install chromium --with-deps
+          npm run qa:e2e
+
+      - name: Report
+        if: always()
+        run: npm run qa:report
+
+      - name: Upload nightly artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-qa-artifacts
+          path: artifacts/
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v

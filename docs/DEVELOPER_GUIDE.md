@@ -201,10 +201,13 @@ Vollständige Modul-API: siehe [MODULE_ARCHITECTURE.md](./MODULE_ARCHITECTURE.md
 
 | Methode | Pfad | Beschreibung |
 |---------|------|-------------|
-| GET | `/admin/email-settings` | SMTP-Konfiguration |
-| PUT | `/admin/email-settings` | SMTP-Konfiguration speichern |
+| GET | `/admin/ui` | Admin-UI-Katalog (Navigation, Seiten, Widgets) |
+| GET/PUT | `/admin/settings/{namespace}` | Settings (z. B. `core.club`, `module.payment`, `module.notifications`) |
+| GET | `/admin/email-settings` | Legacy-Delegierung → Notifications-Modul |
 
-Vollständige Liste: siehe `backend/src/routes/index.ts`.
+Payment-Admin (Modul aktiv): `/api/modules/features/payment/admin/*` – Dashboard, Provider, Zahlungen, Refunds, Webhooks, Health.
+
+Vollständige Liste: siehe `backend/src/routes/index.ts` und Modul-`routes.ts`.
 
 ---
 
@@ -290,7 +293,15 @@ docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.61.1-ja
   bash -c "apt-get update -qq && apt-get install -y -qq python3-pil && cd frontend && npm install && npm run build && cd .. && npm install && npm run screenshots"
 ```
 
-Neue Screenshots (u. a. `20-modulverwaltung.png`, `21-payment-einstellungen.png`) werden automatisch mit erzeugt.
+Neue Screenshots (u. a. `21-payment-admin.png`, `22-payment-einstellungen.png`) werden automatisch mit erzeugt.
+
+Umgebungsvariablen für die Screenshot-Pipeline:
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `FRONTEND_DIST` | Optional: alternativer Pfad zu `frontend/dist` (z. B. nach Build in temp-Verzeichnis) |
+
+Die Rohdaten für Geräte-Mockups landen in `$TMPDIR/food-order-screenshots-raw` (nicht mehr unter `docs/screenshots/_raw`).
 
 ---
 
@@ -303,7 +314,7 @@ Neue Screenshots (u. a. `20-modulverwaltung.png`, `21-payment-einstellungen.png`
 | `DATABASE_URL` | PostgreSQL-Verbindung |
 | `JWT_SECRET` | Langer zufälliger String |
 | `CORS_ORIGIN` | Frontend-URL (CORS, Socket.IO und Links in E-Mails) |
-| `PAYMENT_ENCRYPTION_KEY` | Optional: Verschlüsselung von Payment-API-Keys |
+| `APP_ENCRYPTION_KEY` | Optional: Verschlüsselung von Secrets in der DB (Payment, SMTP) |
 | `MODULES_DIR` | Optional: Pfad zu Modulen (Docker: `/app/modules`) |
 
 ### Docker Compose
@@ -358,7 +369,9 @@ Optionale Repository-Variablen für den Frontend-Build:
 
 Die Architektur nutzt ein **Feature-Modulsystem**. Vollständige Dokumentation:
 
-→ **[MODULE_ARCHITECTURE.md](./MODULE_ARCHITECTURE.md)**
+→ **[MODULE_ARCHITECTURE.md](./MODULE_ARCHITECTURE.md)** (operative Modul-Doku)
+
+→ **[architecture/README.md](./architecture/README.md)** (ADRs, Projektanalyse, Migrationsplan)
 
 | Feature | Modul |
 |---------|-------|
@@ -368,7 +381,7 @@ Die Architektur nutzt ein **Feature-Modulsystem**. Vollständige Dokumentation:
 | Gutscheine | `modules/voucher/` |
 | Rabatte | `modules/discount/` |
 | QR-Einlass | `modules/checkin/` |
-| Benachrichtigungen | `modules/notifications/` |
+| Benachrichtigungen | `modules/notifications/` ✅ |
 | Auswertungen | `modules/analytics/` |
 | Treueprogramm | `modules/loyalty/` |
 | Kassenanbindung | `modules/cash-register/` |
@@ -390,4 +403,4 @@ Das Payment-Modul arbeitet ausschließlich mit `PayableResource` – es kennt ke
 
 **Neuen Payment-Provider hinzufügen:** siehe [Payment-Modul in MODULE_ARCHITECTURE.md](./MODULE_ARCHITECTURE.md#payment-modul).
 
-**Umgebungsvariable:** `PAYMENT_ENCRYPTION_KEY` (min. 32 Zeichen empfohlen) für verschlüsselte API-Keys.
+**Umgebungsvariable:** `APP_ENCRYPTION_KEY` (min. 32 Zeichen empfohlen) für verschlüsselte API-Keys und Passwörter in der Datenbank.

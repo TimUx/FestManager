@@ -8,14 +8,14 @@ async function main() {
 
   const adminRole = await prisma.role.upsert({
     where: { name: RoleName.ADMIN },
-    update: {},
-    create: { name: RoleName.ADMIN },
+    update: { permissions: [] },
+    create: { name: RoleName.ADMIN, permissions: [] },
   });
 
   const staffRole = await prisma.role.upsert({
     where: { name: RoleName.STAFF },
-    update: {},
-    create: { name: RoleName.STAFF },
+    update: { permissions: [] },
+    create: { name: RoleName.STAFF, permissions: [] },
   });
 
   const adminPassword = await bcrypt.hash('admin123', 12);

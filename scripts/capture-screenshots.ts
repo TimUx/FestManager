@@ -9,10 +9,12 @@ import { readFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join, extname } from 'path';
 import { execFileSync } from 'child_process';
 
+import { tmpdir } from 'os';
+
 const PORT = 4173;
 const OUT_DIR = join(process.cwd(), 'docs', 'screenshots');
-const RAW_DIR = join(OUT_DIR, '_raw');
-const DIST = join(process.cwd(), 'frontend', 'dist');
+const RAW_DIR = join(tmpdir(), 'food-order-screenshots-raw');
+const DIST = process.env.FRONTEND_DIST ?? join(process.cwd(), 'frontend', 'dist');
 const FULL_HD = { width: 1920, height: 1080 };
 
 /** Viewports müssen exakt zu scripts/embed-device-frame.py SCREEN_* passen */
@@ -137,19 +139,22 @@ const mockStats = {
 const mockUser = { id: 'u1', email: 'admin@verein.local', firstName: 'Admin', lastName: 'Verein', role: 'ADMIN' };
 
 const mockModuleMenu = [
-  { id: 'payment-settings', label: 'Payment', path: '/admin/module/payment', icon: 'Payment', parentId: 'modules', sortOrder: 10 },
+  { id: 'payment-admin', label: 'Payment', path: '/admin/payment', icon: 'Payment', parentId: 'modules', sortOrder: 10, requiredPermission: 'payment.view' },
+  { id: 'notifications-settings', label: 'Notifications', path: '/admin/settings/module.notifications', icon: 'Notifications', parentId: 'modules', sortOrder: 20, requiredPermission: 'notifications.settings' },
 ];
 
 const mockModules = [
   {
     id: 'payment', name: 'Online-Zahlung', version: '1.0.0', imageVersion: '1.0.0',
     description: 'Online-Zahlungen über Stripe, PayPal, VR Payment, S-Payment, PAYONE und SumUp',
-    author: 'Vereinsbestellung', license: 'MIT', status: 'ACTIVATED', installed: true, enabled: true,
+    author: 'Vereinsbestellung', license: 'MIT', status: 'ENABLED', installed: true, enabled: true,
     flags: { enabled: true, disabled: false, configurable: true, visible: true, health: 'healthy' },
     permissions: [
-      { key: 'payment.view', description: 'Zahlungsstatus einsehen' },
-      { key: 'payment.settings', description: 'Zahlungseinstellungen verwalten' },
+      { key: 'payment.view', description: 'Zahlungsübersicht einsehen' },
+      { key: 'payment.manage', description: 'Zahlungsarten verwalten' },
       { key: 'payment.refund', description: 'Rückerstattungen durchführen' },
+      { key: 'payment.provider.configure', description: 'Anbieter konfigurieren' },
+      { key: 'payment.statistics', description: 'Statistiken einsehen' },
     ],
     menuItems: mockModuleMenu, widgets: [], hasConfig: true,
     dependencies: { required: [], optional: [] }, minimumCoreVersion: '1.0.0',
@@ -236,6 +241,7 @@ const mockModules = [
 const mockPaymentConfig = {
   defaultProvider: 'stripe',
   onlinePaymentForEvents: true,
+  allowCashOnSite: true,
   stripe: {
     enabled: true,
     sandbox: true,
@@ -250,6 +256,105 @@ const mockPaymentConfig = {
   sumup: { enabled: false },
 };
 
+const mockPaymentDashboard = {
+  stats: {
+    paymentsToday: 12,
+    revenueTodayCents: 15600,
+    openPayments: 2,
+    failedPayments: 1,
+    timeouts: 0,
+    refunds: 0,
+  },
+  activeProviders: 1,
+  availableMethods: 3,
+  providers: [
+    { id: 'stripe', name: 'Kartenzahlung', implemented: true, status: 'sandbox', health: { ok: true, message: 'Stripe verbunden (Testmodus)' } },
+  ],
+  webhookStatus: 'ok',
+  healthStatus: 'ok',
+  recentErrors: [],
+};
+
+const mockPaymentProviders = [
+  {
+    id: 'stripe', name: 'Kartenzahlung', description: 'Kreditkarte, Apple Pay, Google Pay',
+    version: '1.0.0', implemented: true, enabled: true, configured: true, sandbox: true,
+    status: 'sandbox', health: { ok: true, message: 'Stripe verbunden (Testmodus)' },
+    supportsRefund: true, supportsWebhook: true,
+  },
+];
+
+const mockPaymentSettingsForm = {
+  namespace: 'module.payment',
+  label: 'Online-Zahlung',
+  description: 'Zahlungsanbieter und API-Schlüssel',
+  adminPath: '/admin/settings/module.payment',
+  groups: [
+    {
+      id: 'general', label: 'Allgemein', fields: [
+        { key: 'onlinePaymentForEvents', group: 'general', label: 'Online-Zahlung für Veranstaltungen', type: 'boolean', value: true },
+        { key: 'allowCashOnSite', group: 'general', label: 'Barzahlung vor Ort anbieten', type: 'boolean', value: true },
+      ],
+    },
+    {
+      id: 'stripe', label: 'Stripe', fields: [
+        { key: 'stripe.enabled', group: 'stripe', label: 'Stripe aktivieren', type: 'boolean', value: true },
+        { key: 'stripe.sandbox', group: 'stripe', label: 'Testmodus (Sandbox)', type: 'boolean', value: true },
+        { key: 'stripe.publishableKey', group: 'stripe', label: 'Öffentlicher API-Schlüssel', type: 'string', value: 'pk_test_51Muster••••Key' },
+        { key: 'stripe.secretKey', group: 'stripe', label: 'Geheimer API-Schlüssel', type: 'password', value: '', masked: true, encrypted: true },
+        { key: 'stripe.webhookSecret', group: 'stripe', label: 'Webhook-Signatur', type: 'password', value: '', masked: true, encrypted: true, helpText: 'Wird vom Zahlungsanbieter bereitgestellt.' },
+      ],
+    },
+  ],
+};
+
+const mockNotificationsSettingsForm = {
+  namespace: 'module.notifications',
+  label: 'Benachrichtigungen',
+  description: 'E-Mail (SMTP), ntfy, Discord, Slack und Teams',
+  adminPath: '/admin/settings/module.notifications',
+  groups: [
+    {
+      id: 'smtp', label: 'SMTP / E-Mail', fields: [
+        { key: 'smtp.enabled', group: 'smtp', label: 'SMTP aktivieren', type: 'boolean', value: true },
+        { key: 'smtp.host', group: 'smtp', label: 'SMTP-Host', type: 'string', value: 'smtp.sv-musterstadt.de' },
+        { key: 'smtp.port', group: 'smtp', label: 'SMTP-Port', type: 'number', value: 587 },
+        { key: 'smtp.from', group: 'smtp', label: 'Absender-Adresse', type: 'email', value: 'noreply@sv-musterstadt.de' },
+        { key: 'smtp.pass', group: 'smtp', label: 'SMTP-Passwort', type: 'password', value: '', masked: true, encrypted: true },
+      ],
+    },
+  ],
+};
+
+const mockAdminUi = {
+  navigation: [
+    { id: 'admin-dashboard', label: 'Übersicht', path: '/admin', icon: 'Dashboard', sortOrder: 0, source: 'core' },
+    { id: 'core-users', label: 'Benutzer', path: '/admin/benutzer', icon: 'People', sortOrder: 30, source: 'core' },
+    { id: 'core-events', label: 'Veranstaltungen', path: '/admin/veranstaltungen', icon: 'Event', sortOrder: 40, source: 'core' },
+    { id: 'core-food-items', label: 'Speisen', path: '/admin/speisen', icon: 'RestaurantMenu', sortOrder: 50, source: 'core' },
+    { id: 'settings-core-club', label: 'Verein', path: '/admin/verein', icon: 'Settings', sortOrder: 15, source: 'core' },
+    { id: 'settings-core-order', label: 'Bestellung', path: '/admin/bestellung', icon: 'ShoppingCart', sortOrder: 55, source: 'core' },
+    { id: 'core-modules', label: 'Module', path: '/admin/module', icon: 'Extension', sortOrder: 90, source: 'core' },
+    ...mockModuleMenu.map((m) => ({ ...m, source: 'module' as const, moduleId: m.id.includes('payment') ? 'payment' : 'notifications' })),
+  ],
+  pages: [
+    { id: 'admin-dashboard', path: '/admin', label: 'Übersicht', pageType: 'dashboard', sortOrder: 0, source: 'core' },
+    { id: 'core-users', path: '/admin/benutzer', label: 'Benutzer', pageType: 'builtin', componentId: 'core.users', sortOrder: 30, source: 'core' },
+    { id: 'core-events', path: '/admin/veranstaltungen', label: 'Veranstaltungen', pageType: 'builtin', componentId: 'core.events', sortOrder: 40, source: 'core' },
+    { id: 'core-food-items', path: '/admin/speisen', label: 'Speisen', pageType: 'builtin', componentId: 'core.food-items', sortOrder: 50, source: 'core' },
+    { id: 'core-modules', path: '/admin/module', label: 'Module', pageType: 'modules', componentId: 'core.modules', sortOrder: 90, source: 'core' },
+    { id: 'settings-core-club', path: '/admin/verein', label: 'Verein', pageType: 'settings', namespace: 'core.club', sortOrder: 15, source: 'core' },
+    { id: 'settings-core-order', path: '/admin/bestellung', label: 'Bestellung', pageType: 'settings', namespace: 'core.order', sortOrder: 55, source: 'core' },
+    { id: 'payment-admin', path: '/admin/payment', label: 'Online-Zahlung', pageType: 'report', componentId: 'payment.admin', sortOrder: 10, source: 'module', moduleId: 'payment', requiredPermission: 'payment.view' },
+    { id: 'settings-module.notifications', path: '/admin/settings/module.notifications', label: 'Benachrichtigungen', pageType: 'settings', namespace: 'module.notifications', sortOrder: 200, source: 'module', moduleId: 'notifications' },
+  ],
+  dashboardTiles: [],
+  widgets: [{ id: 'payment-status', title: 'Online-Zahlung', componentId: 'payment.status', sortOrder: 10, moduleId: 'payment' }],
+  health: [{ id: 'payment-providers', moduleId: 'payment', label: 'Zahlungsanbieter', status: 'healthy' }],
+  reports: [{ id: 'payment-admin', path: '/admin/payment', label: 'Online-Zahlung', componentId: 'payment.admin', moduleId: 'payment' }],
+  developerPages: [],
+};
+
 const mockUsers = [
   { id: 'u1', email: 'admin@verein.local', firstName: 'Admin', lastName: 'Verein', role: 'ADMIN', active: true, createdAt: '2026-01-01T00:00:00.000Z' },
   { id: 'u2', email: 'kueche@verein.local', firstName: 'Küche', lastName: 'Team', role: 'STAFF', active: true, createdAt: '2026-01-02T00:00:00.000Z' },
@@ -260,6 +365,17 @@ function mockApi(pathname: string, method: string, body?: string): unknown {
   if (pathname === '/api/public/order-settings') return mockOrderSettings;
   if (pathname === '/api/admin/email-settings') return mockEmailSettings;
   if (pathname === '/api/public/club' || pathname === '/api/staff/club' || pathname === '/api/admin/club') return mockClub;
+  if (pathname === '/api/admin/ui') return mockAdminUi;
+  if (pathname === '/api/admin/settings/module.payment/schema') return mockPaymentSettingsForm;
+  if (pathname === '/api/admin/settings/module.payment') return mockPaymentConfig;
+  if (pathname === '/api/admin/settings/module.notifications/schema') return mockNotificationsSettingsForm;
+  if (pathname === '/api/admin/settings/module.notifications') return { smtp: mockEmailSettings };
+  if (pathname === '/api/public/payment/methods') {
+    return {
+      allowCashOnSite: true,
+      methods: [{ methodId: 'stripe:card', displayName: 'Online bezahlen', description: 'Kreditkarte', checkoutType: 'redirect', sortOrder: 10, recommended: true, supportedMethods: ['card'] }],
+    };
+  }
   if (pathname === '/api/public/menu') {
     return { event: mockEvent, items: mockFoodItems, preOrderInfo: 'Vorbestellung möglich' };
   }
@@ -298,6 +414,12 @@ function mockApi(pathname: string, method: string, body?: string): unknown {
   if (pathname === '/api/admin/modules' && method === 'GET') return mockModules;
   if (pathname === '/api/public/modules/menu') return mockModuleMenu;
   if (pathname === '/api/public/payment/status') return { available: true };
+  if (pathname === '/api/modules/features/payment/admin/dashboard') return mockPaymentDashboard;
+  if (pathname === '/api/modules/features/payment/admin/providers') return mockPaymentProviders;
+  if (pathname === '/api/modules/features/payment/admin/method-types') return [
+    { id: 'stripe:card', providerId: 'stripe', label: 'Kreditkarte', enabled: true, recommended: true, sortOrder: 10, providerConfigured: true },
+    { id: 'stripe:apple_pay', providerId: 'stripe', label: 'Apple Pay', enabled: true, recommended: false, sortOrder: 20, providerConfigured: true },
+  ];
   if (pathname === '/api/modules/features/payment/admin/config') return mockPaymentConfig;
   if (pathname.match(/\/admin\/modules\/[^/]+\/(install|activate|deactivate|uninstall|reinitialize)$/) && method === 'POST') {
     return mockModules[0];
@@ -337,8 +459,8 @@ async function setupPage(page: Page, auth = false) {
 }
 
 async function prepareOrderPage(page: Page) {
-  await page.getByLabel('Vorname *').fill('Max');
-  await page.getByLabel('Nachname *').fill('Mustermann');
+  await page.getByLabel(/^Vorname/).fill('Max');
+  await page.getByLabel(/^Nachname/).fill('Mustermann');
   const dishesScroll = page.getByTestId('order-dishes-scroll');
   await dishesScroll.evaluate((el) => { el.scrollTop = 0; });
   const increaseButtons = page.locator('button[aria-label="Menge erhöhen"]');
@@ -457,7 +579,11 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
 
-  await captureOrderPageDevices(browser);
+  try {
+    await captureOrderPageDevices(browser);
+  } catch (err) {
+    console.warn('Geräte-Screenshots Bestellseite übersprungen:', err instanceof Error ? err.message : err);
+  }
 
   const pages: PageSpec[] = [
     { name: '02-kundenstatus', url: `/status/${ORDER_ID}` },
@@ -501,16 +627,17 @@ async function main() {
     { name: '16-admin-uebersicht', url: '/admin', auth: true },
     { name: '17-benutzerverwaltung', url: '/admin/benutzer', auth: true },
     { name: '18-bestell-einstellungen', url: '/admin/bestellung', auth: true },
-    { name: '19-email-einstellungen', url: '/admin/email', auth: true },
+    { name: '19-email-einstellungen', url: '/admin/settings/module.notifications', auth: true },
     { name: '20-modulverwaltung', url: '/admin/module', auth: true },
-    { name: '21-payment-einstellungen', url: '/admin/module/payment', auth: true },
+    { name: '21-payment-admin', url: '/admin/payment', auth: true },
+    { name: '22-payment-einstellungen', url: '/admin/payment?tab=settings', auth: true },
   ];
 
   for (const spec of pages) {
     await captureScreenshot(browser, spec);
   }
 
-  const oldNames = ['08-kassenansicht.png', '09-lokale-kasse.png'];
+  const oldNames = ['08-kassenansicht.png', '09-lokale-kasse.png', '21-payment-einstellungen.png'];
   for (const old of oldNames) {
     try {
       unlinkSync(join(OUT_DIR, old));

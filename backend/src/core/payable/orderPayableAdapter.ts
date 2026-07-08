@@ -4,7 +4,8 @@ import { emitOrderCreated } from '../../socket';
 import { emailService } from '../../services/emailService';
 import { clubService } from '../../services/clubService';
 import { getCancellationDeadline, formatDateTimeDE } from '../../utils/helpers';
-import { featureHooks, CORE_HOOKS } from '../../module-system';
+import { hookSystem } from '../../platform/bootstrap';
+import { CORE_HOOKS } from '../../platform/types';
 import type { PayableResourceAdapter, PayableResource } from '../../module-system/extension-points';
 
 export const ORDER_PAYABLE_TYPE = 'order';
@@ -29,6 +30,7 @@ export const orderPayableAdapter: PayableResourceAdapter = {
       metadata: {
         orderNumber: String(order.orderNumber),
         eventId: order.eventId,
+        source: order.source,
       },
     };
   },
@@ -39,6 +41,7 @@ export const orderPayableAdapter: PayableResourceAdapter = {
 
     const mapped = {
       id: order.id,
+      eventId: order.eventId,
       orderNumber: order.orderNumber,
       displayNumber: formatOrderNumber(order.orderNumber),
       orderDate: order.orderDate,
@@ -68,12 +71,12 @@ export const orderPayableAdapter: PayableResourceAdapter = {
     };
 
     emitOrderCreated(order.eventId, mapped);
-    featureHooks.emitAsync(CORE_HOOKS.ORDER_CREATED, mapped);
-    featureHooks.emitAsync(CORE_HOOKS.ORDER_PAID, { orderId: id, ...mapped });
+    hookSystem.emitAsync(CORE_HOOKS.ORDER_CREATED, mapped);
+    hookSystem.emitAsync(CORE_HOOKS.ORDER_PAID, { orderId: id, ...mapped });
 
     if (order.customer?.email && order.event) {
       const club = await clubService.getPublic();
-      const settings = await clubService.getSettings();
+      const settings = await clubService.getOrderSettings();
       const deadline = getCancellationDeadline(
         order.event.date,
         order.event.startTime,
@@ -109,5 +112,9 @@ export const orderPayableAdapter: PayableResourceAdapter = {
 
   async onPaymentFailed(_id: string): Promise<void> {
     // Bestellung bleibt in DB, wird nicht an Küche übergeben
+  },
+
+  async onPaymentCancelled(_id: string): Promise<void> {
+    // Bestellung bleibt in DB, Zahlung abgebrochen
   },
 };

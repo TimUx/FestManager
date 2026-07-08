@@ -1,7 +1,8 @@
 import { eventRepository } from '../repositories';
 import { AppError } from '../middleware/errorHandler';
 import { emitEventUpdate } from '../socket';
-import { featureHooks, CORE_HOOKS } from '../module-system';
+import { hookSystem } from '../platform/bootstrap';
+import { CORE_HOOKS } from '../platform/types';
 
 export const eventService = {
   async getAll() {
@@ -29,18 +30,23 @@ export const eventService = {
     onlineOrdersActive?: boolean;
     cashierActive?: boolean;
     ordersClosed?: boolean;
+    activateOnCreate?: boolean;
   }) {
+    const { activateOnCreate, ...eventData } = data;
     const event = await eventRepository.create({
-      name: data.name,
-      description: data.description,
-      date: new Date(data.date),
-      startTime: data.startTime,
-      endTime: data.endTime,
-      onlineOrdersActive: data.onlineOrdersActive ?? true,
-      cashierActive: data.cashierActive ?? true,
-      ordersClosed: data.ordersClosed ?? false,
+      name: eventData.name,
+      description: eventData.description,
+      date: new Date(eventData.date),
+      startTime: eventData.startTime,
+      endTime: eventData.endTime,
+      onlineOrdersActive: eventData.onlineOrdersActive ?? true,
+      cashierActive: eventData.cashierActive ?? true,
+      ordersClosed: eventData.ordersClosed ?? false,
     });
-    featureHooks.emitAsync(CORE_HOOKS.EVENT_CREATED, event);
+    hookSystem.emitAsync(CORE_HOOKS.EVENT_CREATED, event);
+    if (activateOnCreate) {
+      return this.setActive(event.id);
+    }
     return event;
   },
 
@@ -59,7 +65,7 @@ export const eventService = {
     if (data.date) updateData.date = new Date(data.date);
     const event = await eventRepository.update(id, updateData);
     emitEventUpdate(event);
-    featureHooks.emitAsync(CORE_HOOKS.EVENT_UPDATED, event);
+    hookSystem.emitAsync(CORE_HOOKS.EVENT_UPDATED, event);
     return event;
   },
 

@@ -1,15 +1,101 @@
 {
   "id": "notifications",
   "name": "Benachrichtigungen",
-  "description": "E-Mail, Push und ntfy Benachrichtigungen",
-  "version": "0.1.0",
+  "description": "E-Mail (SMTP), ntfy, Discord, Slack und Microsoft Teams",
+  "version": "1.0.0",
   "author": "Vereinsbestellung",
+  "homepage": "https://github.com/TimUx/food-order",
   "license": "MIT",
   "entry": "index",
-  "dependencies": { "required": [], "optional": [] },
+  "dependencies": {
+    "required": [],
+    "optional": []
+  },
   "permissions": [
     { "key": "notifications.settings", "description": "Benachrichtigungseinstellungen verwalten" },
     { "key": "notifications.send", "description": "Benachrichtigungen senden" }
   ],
-  "minimumCoreVersion": "1.0.0"
+  "menus": [
+    {
+      "id": "notifications-settings",
+      "label": "Notifications",
+      "path": "/admin/settings/module.notifications",
+      "icon": "Notifications",
+      "parentId": "modules",
+      "sortOrder": 20,
+      "requiredPermission": "notifications.settings"
+    }
+  ],
+  "settings": {
+    "namespace": "module.notifications",
+    "label": "Benachrichtigungen",
+    "description": "Kanäle und Ereigniszuordnung – SMTP vollständig in der WebUI",
+    "adminPath": "/admin/settings/module.notifications",
+    "permission": "notifications.settings",
+    "groups": [
+      { "id": "events", "label": "Ereignisse" },
+      { "id": "smtp", "label": "SMTP / E-Mail" },
+      { "id": "content", "label": "E-Mail-Inhalt" },
+      { "id": "ntfy", "label": "ntfy" },
+      { "id": "discord", "label": "Discord" },
+      { "id": "slack", "label": "Slack" },
+      { "id": "teams", "label": "Microsoft Teams" }
+    ],
+    "fields": [
+      { "key": "events.orderCreated.email", "group": "events", "label": "Neue Bestellung → E-Mail", "type": "boolean", "default": true },
+      { "key": "events.orderCreated.ntfy", "group": "events", "label": "Neue Bestellung → ntfy", "type": "boolean", "default": false },
+      { "key": "events.orderCreated.discord", "group": "events", "label": "Neue Bestellung → Discord", "type": "boolean", "default": false },
+      { "key": "events.orderCreated.slack", "group": "events", "label": "Neue Bestellung → Slack", "type": "boolean", "default": false },
+      { "key": "events.orderCreated.teams", "group": "events", "label": "Neue Bestellung → Teams", "type": "boolean", "default": false },
+      { "key": "events.orderCancelled.email", "group": "events", "label": "Stornierung → E-Mail", "type": "boolean", "default": true },
+      { "key": "events.orderCancelled.ntfy", "group": "events", "label": "Stornierung → ntfy", "type": "boolean", "default": false },
+      { "key": "events.orderPaid.email", "group": "events", "label": "Zahlung → E-Mail", "type": "boolean", "default": false, "helpText": "Bestellbestätigung erfolgt bereits bei ORDER_CREATED" },
+      { "key": "events.orderPaid.ntfy", "group": "events", "label": "Zahlung → ntfy", "type": "boolean", "default": false },
+      { "key": "events.orderPaid.discord", "group": "events", "label": "Zahlung → Discord", "type": "boolean", "default": false },
+      { "key": "events.orderPaid.slack", "group": "events", "label": "Zahlung → Slack", "type": "boolean", "default": false },
+      { "key": "events.orderPaid.teams", "group": "events", "label": "Zahlung → Teams", "type": "boolean", "default": false },
+      { "key": "events.kitchenCompleted.ntfy", "group": "events", "label": "Küche fertig → ntfy", "type": "boolean", "default": true },
+      { "key": "events.kitchenCompleted.discord", "group": "events", "label": "Küche fertig → Discord", "type": "boolean", "default": false },
+      { "key": "events.kitchenCompleted.slack", "group": "events", "label": "Küche fertig → Slack", "type": "boolean", "default": false },
+      { "key": "events.kitchenCompleted.teams", "group": "events", "label": "Küche fertig → Teams", "type": "boolean", "default": false },
+      { "key": "smtp.enabled", "group": "smtp", "label": "SMTP aktivieren", "type": "boolean", "default": false },
+      { "key": "smtp.host", "group": "smtp", "label": "SMTP-Host", "type": "string", "helpText": "z. B. smtp.example.com" },
+      { "key": "smtp.port", "group": "smtp", "label": "SMTP-Port", "type": "number", "default": 587, "validation": { "min": 1, "max": 65535 } },
+      { "key": "smtp.user", "group": "smtp", "label": "SMTP-Benutzer", "type": "string" },
+      { "key": "smtp.pass", "group": "smtp", "label": "SMTP-Passwort", "type": "password", "encrypted": true, "helpText": "Leer lassen, um das gespeicherte Passwort beizubehalten" },
+      { "key": "smtp.from", "group": "smtp", "label": "Absender-Adresse", "type": "email", "default": "noreply@verein.local" },
+      { "key": "emailCustomText", "group": "content", "label": "Zusätzlicher E-Mail-Text", "type": "text", "helpText": "Wird in Bestell- und Stornierungs-E-Mails eingefügt" },
+      { "key": "ntfy.enabled", "group": "ntfy", "label": "ntfy aktivieren", "type": "boolean", "default": false },
+      { "key": "ntfy.serverUrl", "group": "ntfy", "label": "ntfy-Server", "type": "url", "default": "https://ntfy.sh" },
+      { "key": "ntfy.topic", "group": "ntfy", "label": "Topic", "type": "string", "helpText": "z. B. verein-kueche" },
+      { "key": "ntfy.token", "group": "ntfy", "label": "Access Token", "type": "password", "encrypted": true, "helpText": "Optional für private Topics" },
+      { "key": "discord.enabled", "group": "discord", "label": "Discord aktivieren", "type": "boolean", "default": false },
+      { "key": "discord.webhookUrl", "group": "discord", "label": "Webhook-URL", "type": "password", "encrypted": true },
+      { "key": "slack.enabled", "group": "slack", "label": "Slack aktivieren", "type": "boolean", "default": false },
+      { "key": "slack.webhookUrl", "group": "slack", "label": "Webhook-URL", "type": "password", "encrypted": true },
+      { "key": "teams.enabled", "group": "teams", "label": "Teams aktivieren", "type": "boolean", "default": false },
+      { "key": "teams.webhookUrl", "group": "teams", "label": "Webhook-URL", "type": "password", "encrypted": true }
+    ]
+  },
+  "widgets": [
+    {
+      "id": "notifications-status",
+      "title": "Benachrichtigungen",
+      "componentId": "notifications.status",
+      "sortOrder": 20
+    }
+  ],
+  "healthChecks": [
+    {
+      "id": "channels",
+      "label": "Benachrichtigungskanäle",
+      "description": "SMTP, ntfy und Webhook-Kanäle"
+    }
+  ],
+  "minimumCoreVersion": "1.0.0",
+  "qa": {
+    "participatesInScenarios": true,
+    "providesSeed": true,
+    "integrationTest": "qa/integration.test.ts"
+  }
 }

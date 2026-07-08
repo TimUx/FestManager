@@ -3,7 +3,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ClubProvider } from '@/contexts/ClubContext';
 import { ProtectedRoute } from '@/components/StaffLayout';
-import { AdminRoute } from '@/components/AdminLayout';
 import { OrderPage } from '@/pages/OrderPage';
 import { OrderStatusPage } from '@/pages/OrderStatusPage';
 import { PickupBoardPage } from '@/pages/PickupBoardPage';
@@ -14,15 +13,9 @@ import { KitchenPage } from '@/pages/staff/KitchenPage';
 import { AbholungPage } from '@/pages/staff/AbholungPage';
 import { BestellungPage } from '@/pages/staff/BestellungPage';
 import { OrdersPage } from '@/pages/staff/OrdersPage';
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
-import { ClubSettingsPage } from '@/pages/admin/ClubSettingsPage';
-import { UsersPage } from '@/pages/admin/UsersPage';
-import { EventsPage } from '@/pages/admin/EventsPage';
-import { FoodItemsPage } from '@/pages/admin/FoodItemsPage';
-import { OrderSettingsPage } from '@/pages/admin/OrderSettingsPage';
-import { MailSettingsPage } from '@/pages/admin/MailSettingsPage';
-import { FeatureModulesPage } from '@/pages/admin/FeatureModulesPage';
-import { PaymentSettingsPage } from '@/pages/admin/PaymentSettingsPage';
+import { AdminShell } from '@/pages/admin/AdminShell';
+import { AdminRoute } from '@/components/AdminLayout';
+import { SetupWizardPage } from '@/pages/admin/SetupWizardPage';
 
 export default function App() {
   return (
@@ -45,23 +38,16 @@ export default function App() {
               <Route path="/mitarbeiter/bestellung" element={<ProtectedRoute><BestellungPage /></ProtectedRoute>} />
 
               <Route path="/admin/login" element={<LoginPage />} />
-              <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-              <Route path="/admin/verein" element={<AdminRoute><ClubSettingsPage /></AdminRoute>} />
-              <Route path="/admin/benutzer" element={<AdminRoute><UsersPage /></AdminRoute>} />
-              <Route path="/admin/veranstaltungen" element={<AdminRoute><EventsPage /></AdminRoute>} />
-              <Route path="/admin/speisen" element={<AdminRoute><FoodItemsPage /></AdminRoute>} />
-              <Route path="/admin/bestellung" element={<AdminRoute><OrderSettingsPage /></AdminRoute>} />
-              <Route path="/admin/email" element={<AdminRoute><MailSettingsPage /></AdminRoute>} />
-              <Route path="/admin/module" element={<AdminRoute><FeatureModulesPage /></AdminRoute>} />
-              <Route path="/admin/module/payment" element={<AdminRoute><PaymentSettingsPage /></AdminRoute>} />
-              <Route path="/admin/module/:moduleId" element={<AdminRoute><FeatureModulesPage /></AdminRoute>} />
+              <Route path="/admin/einrichtung" element={<AdminRoute><SetupWizardPage /></AdminRoute>} />
+              <Route path="/admin/*" element={<AdminShell />} />
 
-              {/* Alte Routen weiterleiten */}
+              {/* Legacy-Weiterleitungen */}
               <Route path="/mitarbeiter/kasse" element={<Navigate to="/mitarbeiter/abholung" replace />} />
               <Route path="/mitarbeiter/lokale-kasse" element={<Navigate to="/mitarbeiter/bestellung" replace />} />
               <Route path="/mitarbeiter/verein" element={<Navigate to="/admin/verein" replace />} />
               <Route path="/mitarbeiter/speisen" element={<Navigate to="/admin/speisen" replace />} />
               <Route path="/mitarbeiter/veranstaltungen" element={<Navigate to="/admin/veranstaltungen" replace />} />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>

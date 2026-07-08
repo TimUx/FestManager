@@ -5,8 +5,9 @@ import path from 'path';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from './config';
-import { moduleManager } from './module-system';
+import { moduleManager } from './platform/bootstrap';
 import { registerCorePayables } from './core/payable/registerPayables';
+import { migrateLegacySettingsSecrets } from './core/settings/migrateLegacySecrets';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(errorHandler);
 
 export async function bootstrapApp(): Promise<void> {
   registerCorePayables();
+  await migrateLegacySettingsSecrets();
   await moduleManager.initialize();
   await moduleManager.mountRoutes(routes);
 }

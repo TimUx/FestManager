@@ -134,6 +134,8 @@ Für Bestellungen **vor Ort** ohne Kundendaten (kein Name nötig).
 
 Zeigt alle Bestellungen mit Abholnummer, Uhrzeit, Gerichten, Quelle (Online / Vor Ort) und Status.
 
+**Kontakt zum Kunden:** Bei Online-Bestellungen werden unter dem Namen **E-Mail** und **Telefonnummer** angezeigt (falls angegeben). Die Links sind direkt anklickbar (`mailto:` / `tel:`) – praktisch, wenn der Kunde seine Abholnummer vergessen hat oder Rückfragen nötig sind.
+
 ### Status per Klick ändern
 
 | Button | Neuer Status |
@@ -156,14 +158,15 @@ Kunden können **Wochen vorher** online bestellen. Am Veranstaltungstag:
 
 ### Onlinezahlung (optional)
 
-Wenn Ihr Verein das **Payment-Modul** aktiviert hat, läuft der Ablauf etwas anders:
+Wenn Ihr Verein das **Payment-Modul** aktiviert hat:
 
-1. Kunde bestellt online und wird zur Zahlungsseite (Stripe) weitergeleitet
-2. Die Bestellung erscheint in der Küche **erst nach erfolgreicher Zahlung**
-3. Unbezahlte oder abgebrochene Bestellungen sind in der Küche **nicht sichtbar**
-4. Die Abholung und Barzahlung an der Kasse funktionieren wie gewohnt
+1. Kunde wählt **Online bezahlen** oder **Vor Ort bezahlen** (Smart Payment – nur sichtbar wenn nötig)
+2. Bei Onlinezahlung: QR-Code oder Link zur Zahlungsseite, Live-Status in der Bestellübersicht
+3. Die Bestellung erscheint in der Küche **erst nach erfolgreicher Zahlung**
+4. Unbezahlte oder abgebrochene Bestellungen sind in der Küche **nicht sichtbar**
+5. Barzahlung an der Kasse funktioniert weiterhin unverändert
 
-> **Hinweis:** Wenn Onlinezahlung **nicht** aktiviert ist, gehen Bestellungen wie bisher sofort an die Küche. Die Zahlung erfolgt an der Kasse beim Abholen.
+> **Hinweis:** Ohne aktiviertes Payment-Modul gehen Bestellungen wie bisher sofort an die Küche.
 
 ![Kundenstatus](screenshots/02-kundenstatus.png)
 

@@ -1,13 +1,43 @@
 {
-  "name": "vereinsbestellung",
-  "version": "1.0.0",
+  "name": "food-order",
   "private": true,
+  "description": "Vereinsbestellplattform – QA & CI",
   "scripts": {
-    "screenshots": "tsx scripts/capture-screenshots.ts",
-    "build:all": "cd backend && npm run build && cd ../frontend && npm run build"
+    "qa:lint": "eslint backend/src frontend/src tests scripts/qa --max-warnings 0",
+    "qa:typecheck": "npm run build --prefix backend && npm run build --prefix frontend",
+    "qa:format": "node -e \"console.log('Format-Check: TypeScript-Compiler als Gate')\"",
+    "qa:depcheck": "npx depcheck backend && npx depcheck frontend",
+    "qa:unit": "npm run test:coverage --prefix backend && npm run test --prefix frontend",
+    "qa:api": "vitest run --config tests/vitest.config.ts",
+    "qa:seed": "cd backend && npx tsx ../tests/seeds/qa-seed.ts",
+    "qa:seed:demo": "cd backend && QA_DEMO_MODE=1 QA_ORDER_COUNT=50 npx tsx ../tests/seeds/qa-seed.ts",
+    "qa:seed:nightly": "cd backend && QA_ORDER_COUNT=1000 npx tsx ../tests/seeds/qa-seed.ts",
+    "qa:module-scenarios": "npx tsx scripts/qa/run-module-scenarios.ts",
+    "qa:module-tests": "npx tsx scripts/qa/run-module-tests.ts",
+    "qa:security": "npx tsx scripts/qa/security-audit.ts",
+    "qa:performance": "npx tsx scripts/qa/performance-baseline.ts",
+    "qa:report": "npx tsx scripts/qa/generate-report.ts",
+    "screenshots": "npx tsx scripts/capture-screenshots.ts",
+    "qa:e2e": "playwright test --config tests/e2e/playwright.config.ts",
+    "qa:e2e:demo": "QA_DEMO_MODE=1 npm run qa:seed:demo && playwright test --config tests/e2e/playwright.config.ts",
+    "qa:docker:up": "docker compose -f docker-compose.ci.yml up -d --build",
+    "qa:docker:down": "docker compose -f docker-compose.ci.yml down -v",
+    "qa:docker:logs": "docker compose -f docker-compose.ci.yml logs",
+    "qa:wait": "bash scripts/qa/wait-for-services.sh"
   },
   "devDependencies": {
-    "playwright": "^1.52.0",
-    "tsx": "^4.19.4"
+    "@eslint/js": "^9.28.0",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.30",
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^3.2.3",
+    "depcheck": "^1.4.7",
+    "dotenv": "^16.5.0",
+    "eslint": "^9.28.0",
+    "supertest": "^7.1.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.34.0",
+    "vitest": "^3.2.3"
   }
 }
