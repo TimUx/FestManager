@@ -1,0 +1,13 @@
+{
+  "name": "vereinsbestellung",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "screenshots": "tsx scripts/capture-screenshots.ts",
+    "build:all": "cd backend && npm run build && cd ../frontend && npm run build"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0",
+    "tsx": "^4.19.4"
+  }
+}
