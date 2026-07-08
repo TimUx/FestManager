@@ -22,6 +22,9 @@ const DEVICE_CAPTURES = {
   ipad: { width: 768, height: 1024 },
 } as const;
 
+const IPHONE_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+
 const EVENT_ID = '00000000-0000-0000-0000-000000000001';
 const ORDER_ID = '00000000-0000-0000-0000-000000000042';
 
@@ -236,6 +239,7 @@ async function captureOrderPageDevices(browser: Awaited<ReturnType<typeof chromi
       locale: 'de-DE',
       isMobile: device === 'iphone',
       hasTouch: device === 'iphone' || device === 'ipad',
+      ...(device === 'iphone' && { userAgent: IPHONE_UA }),
     });
     const page = await context.newPage();
     await setupPage(page, false);

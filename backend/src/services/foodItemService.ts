@@ -22,8 +22,7 @@ export const foodItemService = {
         eventDateLabel: formatEventDate(event.date),
       },
       items: items.filter((i) => !i.soldOut),
-      preOrderInfo:
-        'Sie können bereits jetzt vorbestellen. Ihre Abholnummer gilt am Veranstaltungstag.',
+      preOrderInfo: 'Vorbestellung möglich',
     };
   },
 

@@ -19,7 +19,7 @@ import { FoodItemCard } from '@/components/FoodItemCard';
 import { TurnstileWidget } from '@/components/TurnstileWidget';
 import { api, formatPrice } from '@/services/api';
 import { FoodItem } from '@/types';
-import { touchFieldSx, touchPrimaryButtonSx, touchButtonSx, touchIconButtonSx } from '@/theme/touch';
+import { touchFieldSx, touchPrimaryButtonSx, touchButtonSx } from '@/theme/touch';
 
 export function OrderPage() {
   const navigate = useNavigate();
@@ -133,12 +133,12 @@ export function OrderPage() {
         }}
       >
         <Box sx={{ flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-            <Box>
-              <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="h4" fontWeight={800} gutterBottom sx={{ mb: { xs: 0.5, sm: 1 } }}>
                 {eventName || 'Essen bestellen'}
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '1.05rem', sm: '1.1rem' } }}>
+              <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
                 Wählen Sie Ihre Gerichte und geben Sie Ihre Daten ein.
               </Typography>
             </Box>
@@ -148,11 +148,16 @@ export function OrderPage() {
               aria-label="Kontakt"
               color="primary"
               sx={{
-                ...touchIconButtonSx,
                 display: { xs: 'inline-flex', sm: 'none' },
+                flexShrink: 0,
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
                 border: 1,
                 borderColor: 'divider',
-                flexShrink: 0,
+                borderRadius: 2,
+                '& .MuiSvgIcon-root': { fontSize: 22 },
               }}
             >
               <ContactMailIcon />
@@ -162,14 +167,14 @@ export function OrderPage() {
               to="/kontakt"
               variant="outlined"
               startIcon={<ContactMailIcon />}
-              sx={{ ...touchButtonSx, display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0 }}
+              sx={{ ...touchButtonSx, display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0, alignSelf: 'flex-start' }}
             >
               Kontakt
             </Button>
           </Box>
           {eventDateLabel && (
-            <Alert severity="info" sx={{ mb: 3, fontSize: '1.05rem' }}>
-              <strong>Veranstaltung:</strong> {eventDateLabel} · Vorbestellung möglich
+            <Alert severity="info" sx={{ mb: 3, py: { xs: 0.75, sm: 1 }, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+              {eventDateLabel} · Vorbestellung möglich
             </Alert>
           )}
 
