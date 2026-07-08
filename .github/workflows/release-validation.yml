@@ -1,0 +1,72 @@
+name: Release Validation
+
+on:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to validate'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+
+      - name: Trigger full QA pipeline
+        run: echo "Release validation delegates to quality-assurance workflow gates"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: Quality gate
+        run: |
+          npm run qa:typecheck
+          npm run qa:unit
+
+      - name: Docker stack validation
+        env:
+          DATABASE_URL: postgresql://verein:verein_secret@localhost:5432/vereinsbestellung
+          JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long
+          APP_ENCRYPTION_KEY: ci-test-encryption-key-32chars
+        run: |
+          docker compose -f docker-compose.ci.yml up -d --build
+          npm run qa:wait
+          cd backend && npx prisma db push && npx prisma migrate deploy && npm run seed
+          npm run qa:seed
+          npm run qa:module-scenarios
+          npm run qa:api
+          npx playwright install chromium --with-deps
+          npm run qa:e2e
+          npm run qa:security
+
+      - name: Release gate report
+        if: always()
+        run: |
+          npm run qa:report || true
+          test -f artifacts/qa-summary.json
+
+      - name: Upload release validation artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-validation
+          path: artifacts/
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v

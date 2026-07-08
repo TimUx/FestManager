@@ -13,17 +13,17 @@ export const orderController = {
   ) {
     try {
       await validateOrderBotProtection(req.body);
-      const { firstName, lastName, email, phone, items } = req.body;
-      const order = await orderService.createOnlineOrder({ firstName, lastName, email, phone, items });
+      const { firstName, lastName, email, phone, items, paymentMethodId } = req.body;
+      const order = await orderService.createOnlineOrder({ firstName, lastName, email, phone, items, paymentMethodId });
       res.status(201).json(order);
     } catch (err) {
       next(err);
     }
   },
 
-  async createCashier(req: { body: { items: { foodItemId: string; quantity: number }[] } }, res: Response, next: NextFunction) {
+  async createCashier(req: { body: { items: { foodItemId: string; quantity: number }[]; paymentMethodId?: string } }, res: Response, next: NextFunction) {
     try {
-      const order = await orderService.createCashierOrder(req.body.items);
+      const order = await orderService.createCashierOrder(req.body.items, req.body.paymentMethodId);
       res.status(201).json(order);
     } catch (err) {
       next(err);
@@ -61,9 +61,9 @@ export const orderController = {
     }
   },
 
-  async lookupByNumber(req: { body: { orderNumber: number } }, res: Response, next: NextFunction) {
+  async lookupByNumber(req: { body: { orderNumber: number; lastName: string } }, res: Response, next: NextFunction) {
     try {
-      const order = await orderService.lookupByNumber(req.body.orderNumber);
+      const order = await orderService.lookupByNumber(req.body.orderNumber, req.body.lastName);
       res.json(order);
     } catch (err) {
       next(err);
@@ -118,6 +118,32 @@ export const orderController = {
   ) {
     try {
       const order = await orderService.cancelOnlineOrder(req.params.id, req.body.lastName);
+      res.json(order);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createCheckout(
+    req: { params: { id: string }; body: { paymentMethodId: string } },
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const payment = await orderService.createOrderCheckout(req.params.id, req.body.paymentMethodId);
+      res.json(payment);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async abortCashierPayment(
+    req: AuthRequest & { params: { id: string }; body: { sessionId: string } },
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const order = await orderService.abortCashierOrderPayment(req.params.id, req.body.sessionId);
       res.json(order);
     } catch (err) {
       next(err);

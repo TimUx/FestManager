@@ -1,15 +1,116 @@
 {
   "id": "printer",
   "name": "Bondruck",
-  "description": "Automatischer Bondruck für Küche und Kasse",
-  "version": "0.1.0",
+  "description": "Automatischer Bondruck für Küche und Kasse (ESC/POS, PDF, Browser)",
+  "version": "1.0.0",
   "author": "Vereinsbestellung",
+  "homepage": "https://github.com/TimUx/food-order",
   "license": "MIT",
   "entry": "index",
-  "dependencies": { "required": [], "optional": [] },
+  "dependencies": {
+    "required": [],
+    "optional": ["payment"]
+  },
   "permissions": [
     { "key": "printer.settings", "description": "Druckereinstellungen verwalten" },
     { "key": "printer.print", "description": "Belege drucken" }
   ],
-  "minimumCoreVersion": "1.0.0"
+  "menus": [
+    {
+      "id": "printer-settings",
+      "label": "Bondruck",
+      "path": "/admin/settings/module.printer",
+      "icon": "Print",
+      "parentId": "modules",
+      "sortOrder": 30,
+      "requiredPermission": "printer.settings"
+    }
+  ],
+  "settings": {
+    "namespace": "module.printer",
+    "label": "Bondruck",
+    "description": "Drucker, Auto-Print und Netzwerk-Erkennung",
+    "adminPath": "/admin/settings/module.printer",
+    "permission": "printer.settings",
+    "groups": [
+      { "id": "autoPrint", "label": "Auto-Druck" },
+      { "id": "discovery", "label": "Drucker-Erkennung" },
+      { "id": "printer1", "label": "Drucker 1" },
+      { "id": "printer2", "label": "Drucker 2" },
+      { "id": "printer3", "label": "Drucker 3" }
+    ],
+    "fields": [
+      { "key": "autoPrint.kitchenOnOrderCreated", "group": "autoPrint", "label": "Küchenbon bei neuer Bestellung", "type": "boolean", "default": true, "helpText": "Bei Online-Zahlung erst nach ORDER_PAID" },
+      { "key": "autoPrint.kitchenOnOrderPaid", "group": "autoPrint", "label": "Küchenbon nach Zahlung", "type": "boolean", "default": true },
+      { "key": "autoPrint.receiptOnCashier", "group": "autoPrint", "label": "Kassenbon bei Kassenbestellung", "type": "boolean", "default": false },
+      { "key": "discovery.subnet", "group": "discovery", "label": "Subnetz für Erkennung", "type": "string", "default": "192.168.1", "helpText": "z. B. 192.168.1 – scannt .1–.32 Port 9100" },
+      { "key": "discovery.port", "group": "discovery", "label": "Scan-Port", "type": "number", "default": 9100 },
+      { "key": "printer1.enabled", "group": "printer1", "label": "Aktivieren", "type": "boolean", "default": false },
+      { "key": "printer1.name", "group": "printer1", "label": "Name", "type": "string", "default": "Küche" },
+      { "key": "printer1.type", "group": "printer1", "label": "Typ", "type": "select", "default": "escpos-network", "options": [
+        { "value": "escpos-network", "label": "ESC/POS Netzwerk" },
+        { "value": "browser", "label": "Browser-Druck" },
+        { "value": "pdf", "label": "PDF" },
+        { "value": "bluetooth", "label": "Bluetooth (Platzhalter)" }
+      ]},
+      { "key": "printer1.host", "group": "printer1", "label": "Host / IP", "type": "string" },
+      { "key": "printer1.port", "group": "printer1", "label": "Port", "type": "number", "default": 9100 },
+      { "key": "printer1.template", "group": "printer1", "label": "Vorlage", "type": "select", "default": "kitchen", "options": [
+        { "value": "kitchen", "label": "Küchenbon" },
+        { "value": "receipt", "label": "Kassenbon" },
+        { "value": "both", "label": "Beides" }
+      ]},
+      { "key": "printer2.enabled", "group": "printer2", "label": "Aktivieren", "type": "boolean", "default": false },
+      { "key": "printer2.name", "group": "printer2", "label": "Name", "type": "string", "default": "Browser" },
+      { "key": "printer2.type", "group": "printer2", "label": "Typ", "type": "select", "default": "browser", "options": [
+        { "value": "escpos-network", "label": "ESC/POS Netzwerk" },
+        { "value": "browser", "label": "Browser-Druck" },
+        { "value": "pdf", "label": "PDF" },
+        { "value": "bluetooth", "label": "Bluetooth (Platzhalter)" }
+      ]},
+      { "key": "printer2.host", "group": "printer2", "label": "Host / IP", "type": "string" },
+      { "key": "printer2.port", "group": "printer2", "label": "Port", "type": "number", "default": 9100 },
+      { "key": "printer2.template", "group": "printer2", "label": "Vorlage", "type": "select", "default": "receipt", "options": [
+        { "value": "kitchen", "label": "Küchenbon" },
+        { "value": "receipt", "label": "Kassenbon" },
+        { "value": "both", "label": "Beides" }
+      ]},
+      { "key": "printer3.enabled", "group": "printer3", "label": "Aktivieren", "type": "boolean", "default": false },
+      { "key": "printer3.name", "group": "printer3", "label": "Name", "type": "string", "default": "PDF" },
+      { "key": "printer3.type", "group": "printer3", "label": "Typ", "type": "select", "default": "pdf", "options": [
+        { "value": "escpos-network", "label": "ESC/POS Netzwerk" },
+        { "value": "browser", "label": "Browser-Druck" },
+        { "value": "pdf", "label": "PDF" },
+        { "value": "bluetooth", "label": "Bluetooth (Platzhalter)" }
+      ]},
+      { "key": "printer3.host", "group": "printer3", "label": "Host / IP", "type": "string" },
+      { "key": "printer3.port", "group": "printer3", "label": "Port", "type": "number", "default": 9100 },
+      { "key": "printer3.template", "group": "printer3", "label": "Vorlage", "type": "select", "default": "kitchen", "options": [
+        { "value": "kitchen", "label": "Küchenbon" },
+        { "value": "receipt", "label": "Kassenbon" },
+        { "value": "both", "label": "Beides" }
+      ]}
+    ]
+  },
+  "widgets": [
+    {
+      "id": "printer-status",
+      "title": "Bondruck",
+      "componentId": "printer.status",
+      "sortOrder": 30
+    }
+  ],
+  "healthChecks": [
+    {
+      "id": "printers",
+      "label": "Drucker",
+      "description": "Erreichbarkeit konfigurierter Drucker"
+    }
+  ],
+  "minimumCoreVersion": "1.0.0",
+  "qa": {
+    "participatesInScenarios": true,
+    "providesSeed": true,
+    "integrationTest": "qa/integration.test.ts"
+  }
 }

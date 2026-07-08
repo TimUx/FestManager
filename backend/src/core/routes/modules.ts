@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, loadUser, requireRole } from '../../middleware/auth';
-import { moduleManager, moduleRegistry } from '../../module-system';
+import { moduleManager, moduleRegistry } from '../../platform/bootstrap';
 import { AppError } from '../../middleware/errorHandler';
 
 const router = Router();
@@ -59,6 +59,16 @@ router.post('/:id/activate', async (req: Request, res: Response, next: NextFunct
 router.post('/:id/deactivate', async (req: Request, res: Response, next: NextFunction) => {
   try {
     await moduleManager.deactivateModule(req.params.id as string);
+    const info = (await moduleRegistry.getAllModuleInfo()).find((m) => m.id === req.params.id);
+    res.json(info);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/upgrade', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await moduleManager.upgradeModule(req.params.id as string);
     const info = (await moduleRegistry.getAllModuleInfo()).find((m) => m.id === req.params.id);
     res.json(info);
   } catch (err) {

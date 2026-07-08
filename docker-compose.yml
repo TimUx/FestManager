@@ -9,8 +9,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-vereinsbestellung}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Postgres nur intern – nicht nach außen exponieren (M7)
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-verein} -d ${POSTGRES_DB:-vereinsbestellung}"]
       interval: 5s
@@ -33,6 +34,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
     ports:
       - "3001:3001"
     volumes:

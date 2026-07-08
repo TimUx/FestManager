@@ -28,6 +28,7 @@ enum StatusCode {
 model Role {
   id        String   @id @default(uuid())
   name      RoleName @unique
+  permissions Json     @default("[]")
   createdAt DateTime @default(now())
   users     User[]
 }
@@ -61,6 +62,8 @@ model Event {
   foodItems           FoodItem[]
   orders              Order[]
   dailyCounters       DailyOrderCounter[]
+
+  @@index([isActive])
 }
 
 model DailyOrderCounter {
@@ -98,6 +101,8 @@ model FoodItem {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   orderItems  OrderItem[]
+
+  @@index([eventId])
 }
 
 model Order {
@@ -183,6 +188,37 @@ model InstalledModule {
   lastHealthCheck  DateTime? @map("last_health_check")
   everInstalled    Boolean   @default(false) @map("ever_installed")
   everActivated    Boolean   @default(false) @map("ever_activated")
+  lifecycleStatus  String?   @map("lifecycle_status")
+  lastError        String?   @map("last_error")
+  schemaVersion    String    @default("0") @map("schema_version")
+  imageVersion     String?   @map("image_version")
+
+  migrations ModuleMigration[]
 
   @@map("modules")
+}
+
+/// Ausgeführte Modul-Migrationen (SQL aus modules/{id}/migrations/)
+model ModuleMigration {
+  moduleId   String   @map("module_id")
+  migration  String
+  appliedAt  DateTime @default(now()) @map("applied_at")
+  module     InstalledModule @relation(fields: [moduleId], references: [moduleId], onDelete: Cascade)
+
+  @@id([moduleId, migration])
+  @@map("module_migrations")
+}
+
+/// Plattform-Audit-Log für Modul-Lifecycle und Konfigurationsänderungen
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  actorId   String?  @map("actor_id")
+  moduleId  String?  @map("module_id")
+  details   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([moduleId])
+  @@index([createdAt])
+  @@map("platform_audit_log")
 }

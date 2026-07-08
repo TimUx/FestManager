@@ -6,7 +6,10 @@ import {
   Button,
   Stack,
   Divider,
+  Link,
 } from '@mui/material';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
 import { Order, OrderStatus } from '@/types';
 import { formatPrice, formatTime } from '@/services/api';
 import { StatusChip } from './StatusChip';
@@ -70,9 +73,31 @@ export function OrderCard({
         </Box>
 
         {!compact && order.customer && (
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            {order.customer.firstName} {order.customer.lastName}
-          </Typography>
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="body2" fontWeight={600}>
+              {order.customer.firstName} {order.customer.lastName}
+            </Typography>
+            {(order.customer.email || order.customer.phone) && (
+              <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+                {order.customer.email && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} aria-hidden />
+                    <Link href={`mailto:${order.customer.email}`} variant="body2" underline="hover">
+                      {order.customer.email}
+                    </Link>
+                  </Box>
+                )}
+                {order.customer.phone && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} aria-hidden />
+                    <Link href={`tel:${order.customer.phone}`} variant="body2" underline="hover">
+                      {order.customer.phone}
+                    </Link>
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Box>
         )}
 
         <Divider sx={{ my: 1 }} />

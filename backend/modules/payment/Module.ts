@@ -2,15 +2,15 @@ import {
   BaseModule,
   type FeatureContext,
   type ModuleHealthCheckResult,
-  type ModuleMenuItem,
-  type ModulePermissionDefinition,
   type ModuleRouteRegistration,
 } from '../../src/module-system/types';
 import { paymentServiceRegistry } from '../../src/module-system/extension-points';
-import { defaultPaymentConfig, paymentConfigSchema, PAYMENT_PERMISSIONS } from './config';
+import { defaultPaymentConfig, paymentConfigSchema } from './config';
 import { paymentManager } from './PaymentManager';
-import { createPaymentRoutes } from './routes';
-import { runPaymentMigrations } from './services/MigrationRunner';
+import {
+  createPaymentPublicRoutes,
+} from './routes';
+import { createPaymentAdminRoutes } from './adminRoutes';
 import { createPaymentService } from './services/PaymentServiceImpl';
 
 class PaymentModule extends BaseModule {
@@ -21,7 +21,7 @@ class PaymentModule extends BaseModule {
   readonly author = 'Vereinsbestellung';
 
   async install(_context: FeatureContext): Promise<void> {
-    await runPaymentMigrations();
+    // Schema-Migrationen werden vom ModuleMigrationService ausgeführt
   }
 
   async uninstall(_context: FeatureContext): Promise<void> {
@@ -49,30 +49,17 @@ class PaymentModule extends BaseModule {
   }
 
   async upgrade(_context: FeatureContext, _from: string, _to: string): Promise<void> {
-    await runPaymentMigrations();
+    // Schema-Migrationen werden vom ModuleMigrationService ausgeführt
   }
 
   registerRoutes(context: FeatureContext): ModuleRouteRegistration[] {
-    return [{ path: '/', router: createPaymentRoutes(context) }];
-  }
-
-  registerMenus(): ModuleMenuItem[] {
-    return [{
-      id: 'payment-settings',
-      label: 'Payment',
-      path: '/admin/module/payment',
-      icon: 'Payment',
-      parentId: 'modules',
-      sortOrder: 10,
-      requiredPermission: PAYMENT_PERMISSIONS.SETTINGS,
-    }];
-  }
-
-  registerPermissions(): ModulePermissionDefinition[] {
     return [
-      { key: PAYMENT_PERMISSIONS.VIEW, description: 'Zahlungsstatus einsehen' },
-      { key: PAYMENT_PERMISSIONS.SETTINGS, description: 'Zahlungseinstellungen verwalten' },
-      { key: PAYMENT_PERMISSIONS.REFUND, description: 'Rückerstattungen durchführen' },
+      { path: '/', router: createPaymentPublicRoutes(context) },
+      {
+        path: '/',
+        mountPath: '/admin',
+        router: createPaymentAdminRoutes(context),
+      },
     ];
   }
 
@@ -81,11 +68,6 @@ class PaymentModule extends BaseModule {
   }
 
   async healthCheck(context: FeatureContext): Promise<ModuleHealthCheckResult> {
-    const { moduleRegistry } = await import('../../src/module-system/ModuleRegistry');
-    if (!(await moduleRegistry.isActivated(this.id))) {
-      return { status: 'unknown', message: 'Modul nicht aktiviert' };
-    }
-
     const hasProvider = await paymentManager.hasActiveProvider(context);
     if (!hasProvider) {
       return { status: 'degraded', message: 'Kein aktiver Zahlungsanbieter' };

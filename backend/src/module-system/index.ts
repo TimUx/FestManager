@@ -1,4 +1,36 @@
-export { BaseModule } from './Module';
+export {
+  Registry,
+  ServiceContainer,
+  PLATFORM_TOKENS,
+  EventBus,
+  HookSystem,
+  MetadataRegistry,
+  ExtensionPointRegistry,
+  EXTENSION_POINT_NAMES,
+  HealthService,
+  AuditService,
+  FeatureFlags,
+  createFeatureContext,
+  ModuleRegistry,
+  deriveModuleStatus,
+  ModuleDiscovery,
+  ModuleLoader,
+  DependencyResolver,
+  ModuleManager,
+  BaseModule,
+  CORE_HOOKS,
+  compareVersions,
+  MODULE_STATUS_LABELS,
+  moduleManifestSchema,
+  CORE_VERSION,
+  payableResourceRegistry,
+  paymentServiceRegistry,
+  bootstrapPlatform,
+  platformContainer,
+  moduleDiscovery,
+  moduleLoader,
+} from '../platform';
+
 export type {
   Module,
   ModuleInfo,
@@ -12,26 +44,32 @@ export type {
   CoreHookName,
   HookSubscription,
   FeatureContext,
-} from './types';
-export { CORE_HOOKS, compareVersions } from './types';
-export type { ModuleStatus, ModuleManifest } from './manifest';
-export { MODULE_STATUS_LABELS, moduleManifestSchema } from './manifest';
-export { moduleDiscovery } from './ModuleDiscovery';
-export { moduleLoader } from './ModuleLoader';
-export { dependencyResolver } from './DependencyResolver';
-export { deriveModuleStatus } from './ModuleRegistry';
-export { featureHooks } from './FeatureHooks';
-export { featureFlags } from './FeatureFlags';
-export { featureContext } from './FeatureContext';
-export { moduleRegistry } from './ModuleRegistry';
-export { moduleManager } from './ModuleManager';
-export {
-  payableResourceRegistry,
-  paymentServiceRegistry,
-} from './extension-points';
-export type {
+  ModuleStatus,
+  ModuleManifest,
   PayableResource,
   PayableResourceAdapter,
   PaymentService,
   PaymentCheckoutResult,
-} from './extension-points';
+  ModuleManagerDeps,
+  ExtensionPointName,
+  ResolvedModuleMetadata,
+  AuditLogEntry,
+} from '../platform';
+
+export { HookSystem as FeatureHooks } from '../platform/HookSystem';
+
+import {
+  hookSystemInstance,
+  featureFlagsInstance,
+  featureContextInstance,
+  moduleRegistryInstance,
+  moduleManagerInstance,
+  dependencyResolverInstance,
+} from '../platform/bootstrap';
+
+export const featureHooks = hookSystemInstance;
+export const featureFlags = featureFlagsInstance;
+export const featureContext = featureContextInstance;
+export const moduleRegistry = moduleRegistryInstance;
+export const moduleManager = moduleManagerInstance;
+export const dependencyResolver = dependencyResolverInstance;

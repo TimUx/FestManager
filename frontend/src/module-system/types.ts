@@ -11,9 +11,10 @@ export interface ModuleMenuItem {
 export type ModuleStatus =
   | 'AVAILABLE'
   | 'INSTALLED'
-  | 'ACTIVATED'
+  | 'ENABLED'
   | 'DISABLED'
-  | 'UNINSTALLED';
+  | 'UPGRADING'
+  | 'FAILED';
 
 export interface ModuleInfo {
   id: string;
@@ -38,15 +39,24 @@ export interface ModuleInfo {
   menuItems: ModuleMenuItem[];
   widgets: { id: string; title: string; componentId: string }[];
   hasConfig: boolean;
+  settingsPath?: string;
   dependencies: {
     required: string[];
     optional: string[];
   };
   minimumCoreVersion: string;
   installedAt?: string;
+  installedVersion?: string;
   lastHealthStatus?: string;
   lastHealthCheck?: string;
+  lastError?: string;
+  schemaVersion?: string;
   upgradeAvailable: boolean;
+  dependencyStatus?: {
+    satisfied: boolean;
+    missing: string[];
+    inactive: string[];
+  };
 }
 
 export interface ModuleHealthResult {
@@ -58,7 +68,8 @@ export interface ModuleHealthResult {
 export const MODULE_STATUS_LABELS: Record<ModuleStatus, string> = {
   AVAILABLE: 'Verfügbar',
   INSTALLED: 'Installiert',
-  ACTIVATED: 'Aktiviert',
+  ENABLED: 'Aktiviert',
   DISABLED: 'Deaktiviert',
-  UNINSTALLED: 'Deinstalliert',
+  UPGRADING: 'Upgrade läuft',
+  FAILED: 'Fehler',
 };

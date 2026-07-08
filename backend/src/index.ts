@@ -4,9 +4,11 @@ import { config } from './config';
 import { disconnectPrisma } from './config/database';
 import { initSocket } from './socket';
 import { logger } from './utils/logger';
-import { moduleManager } from './module-system';
+import { assertProductionSecrets } from './config/security';
+import { moduleManager } from './platform/bootstrap';
 
 async function start() {
+  assertProductionSecrets();
   await bootstrapApp();
 
   const server = http.createServer(app);

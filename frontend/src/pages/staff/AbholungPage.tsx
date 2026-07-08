@@ -12,6 +12,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { StaffLayout } from '@/components/StaffLayout';
+import { Numpad } from '@/components/Numpad';
 import { StatusChip } from '@/components/StatusChip';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, formatPrice } from '@/services/api';
@@ -21,6 +22,7 @@ import { touchFieldSx, touchPrimaryButtonSx, touchIconButtonSx } from '@/theme/t
 export function AbholungPage() {
   const { token } = useAuth();
   const [orderNumber, setOrderNumber] = useState('');
+  const [lastName, setLastName] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export function AbholungPage() {
     setError('');
     setOrder(null);
     try {
-      const result = await api.lookupOrderByNumber(token, parseInt(orderNumber, 10));
+      const result = await api.lookupOrderByNumber(token, parseInt(orderNumber, 10), lastName.trim());
       setOrder(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bestellung nicht gefunden');
@@ -64,27 +66,38 @@ export function AbholungPage() {
       </Typography>
 
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, maxWidth: 560 }}>
-        <Stack direction="row" spacing={1.5} alignItems="stretch">
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={1.5} alignItems="stretch">
+            <TextField
+              label="Abholnummer"
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              placeholder="z.B. 042"
+              fullWidth
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+              sx={touchFieldSx}
+              inputProps={{ style: { fontSize: '1.75rem', textAlign: 'center', fontWeight: 700 }, inputMode: 'numeric' }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleLookup}
+              disabled={loading || !orderNumber || !lastName.trim()}
+              aria-label="Suchen"
+              sx={{ ...touchIconButtonSx, minWidth: 72, minHeight: 72, width: 72, height: 72, flexShrink: 0 }}
+            >
+              <SearchIcon sx={{ fontSize: 32 }} />
+            </Button>
+          </Stack>
           <TextField
-            label="Abholnummer"
-            value={orderNumber}
-            onChange={(e) => setOrderNumber(e.target.value)}
-            placeholder="z.B. 042"
+            label="Nachname"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             fullWidth
-            autoFocus
-            onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
             sx={touchFieldSx}
-            inputProps={{ style: { fontSize: '1.75rem', textAlign: 'center', fontWeight: 700 } }}
+            onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
           />
-          <Button
-            variant="contained"
-            onClick={handleLookup}
-            disabled={loading || !orderNumber}
-            aria-label="Suchen"
-            sx={{ ...touchIconButtonSx, minWidth: 72, minHeight: 72, width: 72, height: 72, flexShrink: 0 }}
-          >
-            <SearchIcon sx={{ fontSize: 32 }} />
-          </Button>
+          <Numpad value={orderNumber} onChange={setOrderNumber} />
         </Stack>
       </Paper>
 

@@ -429,7 +429,7 @@ Neuen Provider hinzufügen:
 1. Klasse in `modules/payment/providers/` implementieren (`PaymentProvider`-Interface)
 2. In `PaymentFactory.registerAll()` registrieren
 3. Zod-Schema in `config.ts` erweitern
-4. Admin-UI in `PaymentSettingsPage.tsx` ergänzen
+4. Admin-UI: Settings-Schema in `module.json` und optional `PaymentAdminPage` / Settings-Tab ergänzen
 
 ### Stripe (vollständig)
 
@@ -437,12 +437,12 @@ Neuen Provider hinzufügen:
 |----------|-----------------|
 | Checkout | Stripe Checkout Sessions |
 | Webhook | `POST /api/modules/features/payment/webhooks/stripe` |
-| Refund | Admin-API `POST .../admin/refund` |
+| Refund | Admin-API `POST .../admin/refunds` |
 | Status | `payment_sessions` / `payment_transactions` |
 | Sandbox | `stripe.sandbox` in Modul-Config |
 | Health Check | `stripe.balance.retrieve()` |
 
-Webhook-Signatur wird mit `stripe.webhooks.constructEvent()` geprüft. API-Keys werden AES-256-GCM verschlüsselt in `config_json` gespeichert (`PAYMENT_ENCRYPTION_KEY`).
+Webhook-Signatur wird mit `stripe.webhooks.constructEvent()` geprüft. API-Keys werden über den **SettingsService** AES-256-GCM-verschlüsselt gespeichert (`APP_ENCRYPTION_KEY`).
 
 ### Bestellablauf mit aktivem Payment
 
@@ -462,7 +462,9 @@ Tabellen in `modules/payment/migrations/`:
 
 ### Admin
 
-Nach Aktivierung: **Administration → Module → Payment** (`/admin/module/payment`)
+Nach Aktivierung: **Administration → Module → Payment** (`/admin/payment`)
+
+Tabs: Übersicht, Provider, Zahlungsarten, Einstellungen, Zahlungen, Refunds, Logs, Webhooks, Health, Statistiken.
 
 API (nur wenn Modul aktiviert):
 
@@ -471,15 +473,16 @@ API (nur wenn Modul aktiviert):
 | GET | `/api/modules/features/payment/status` | Zahlung verfügbar? |
 | GET | `/api/modules/features/payment/providers` | Provider-Liste |
 | POST | `/api/modules/features/payment/webhooks/:providerId` | Webhook-Eingang |
-| GET/PUT | `/api/modules/features/payment/admin/config` | Konfiguration |
-| POST | `/api/modules/features/payment/admin/providers/:id/test` | Health Check |
-| POST | `/api/modules/features/payment/admin/refund` | Rückerstattung |
+| GET | `/api/modules/features/payment/admin/dashboard` | Dashboard |
+| GET/PUT | `/api/admin/settings/module.payment` | Provider-Konfiguration (SettingsService) |
+| POST | `/api/modules/features/payment/admin/providers/:id/test` | Verbindungstest |
+| POST | `/api/modules/features/payment/admin/refunds` | Rückerstattung |
 
 Öffentlicher Core-Endpunkt (ohne Modul-Wissen): `GET /api/public/payment/status`
 
 ### Sicherheit (Payment)
 
-- API-Keys verschlüsselt (`EncryptionService`, ENV: `PAYMENT_ENCRYPTION_KEY`)
+- API-Keys verschlüsselt (SettingsService, ENV: `APP_ENCRYPTION_KEY`)
 - Webhook-Signaturen werden geprüft
 - Keine Secrets in Logs
 - Routes nur über `ModuleManager` mit Aktivierungs-Guard

@@ -23,6 +23,9 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -59,6 +62,12 @@ export function UsersPage() {
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [saving, setSaving] = useState(false);
 
+  const [availablePermissions, setAvailablePermissions] = useState<Array<{ key: string; description: string }>>([]);
+  const [staffPermissions, setStaffPermissions] = useState<string[]>([]);
+  const [permLoading, setPermLoading] = useState(false);
+  const [permSaving, setPermSaving] = useState(false);
+  const [permError, setPermError] = useState('');
+
   const loadUsers = () => {
     if (!token) return;
     setLoading(true);
@@ -68,8 +77,22 @@ export function UsersPage() {
       .finally(() => setLoading(false));
   };
 
+  const loadPermissions = () => {
+    if (!token) return;
+    setPermLoading(true);
+    setPermError('');
+    api.getPermissions(token)
+      .then((res) => {
+        setAvailablePermissions(res.available);
+        setStaffPermissions(res.staff);
+      })
+      .catch((err) => setPermError(err.message))
+      .finally(() => setPermLoading(false));
+  };
+
   useEffect(() => {
     loadUsers();
+    loadPermissions();
   }, [token]);
 
   const openCreate = () => {
@@ -120,6 +143,24 @@ export function UsersPage() {
       setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleStaffPermission = (key: string) => {
+    setStaffPermissions((prev) => (prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]));
+  };
+
+  const handleSavePermissions = async () => {
+    if (!token) return;
+    setPermSaving(true);
+    setPermError('');
+    try {
+      await api.updateStaffPermissions(token, staffPermissions);
+      await loadPermissions();
+    } catch (err) {
+      setPermError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');
+    } finally {
+      setPermSaving(false);
     }
   };
 
@@ -182,6 +223,63 @@ export function UsersPage() {
             ))}
           </TableBody>
         </Table>
+      )}
+
+      <Divider sx={{ my: 4 }} />
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+          Rechteverwaltung (STAFF)
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Vorlagen für typische Vereinsrollen. Administratoren haben immer alle Rechte.
+        </Typography>
+      </Box>
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+        <Button size="small" variant="outlined" onClick={() => setStaffPermissions(['printer.print'])}>
+          Küche
+        </Button>
+        <Button size="small" variant="outlined" onClick={() => setStaffPermissions(['payment.view'])}>
+          Kasse
+        </Button>
+        <Button size="small" variant="outlined" onClick={() => setStaffPermissions(availablePermissions.map((p) => p.key))}>
+          Alle Modul-Rechte
+        </Button>
+      </Stack>
+
+      {permError && <Alert severity="error" sx={{ mb: 2 }}>{permError}</Alert>}
+
+      {permLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <FormGroup sx={{ maxHeight: 320, overflow: 'auto', pl: 1 }}>
+            {availablePermissions.map((p) => (
+              <FormControlLabel
+                key={p.key}
+                control={
+                  <Checkbox
+                    checked={staffPermissions.includes(p.key)}
+                    onChange={() => toggleStaffPermission(p.key)}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>{p.description || p.key}</Typography>
+                    <Typography variant="caption" color="text.secondary">{p.key}</Typography>
+                  </Box>
+                }
+              />
+            ))}
+          </FormGroup>
+          <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
+            <Button variant="contained" onClick={() => void handleSavePermissions()} disabled={permSaving}>
+              {permSaving ? 'Speichern…' : 'Rechte speichern'}
+            </Button>
+          </Stack>
+        </>
       )}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

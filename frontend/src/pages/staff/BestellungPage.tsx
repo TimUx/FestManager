@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Typography,
   Grid,
@@ -12,9 +12,13 @@ import {
 import SaveIcon from '@mui/icons-material/Save';
 import { StaffLayout } from '@/components/StaffLayout';
 import { FoodItemCard } from '@/components/FoodItemCard';
+import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
+import { PosPaymentDialog } from '@/components/PosPaymentDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { api, formatPrice } from '@/services/api';
-import { FoodItem } from '@/types';
+import { FoodItem, Order } from '@/types';
+import type { PaymentChoiceId, PaymentMethodsResponse } from '@/types/payment';
+import { buildPosPaymentSelection, isOnlineChoice } from '@/utils/paymentSelection';
 import { touchPrimaryButtonSx } from '@/theme/touch';
 
 export function BestellungPage() {
@@ -24,13 +28,25 @@ export function BestellungPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [eventName, setEventName] = useState('');
   const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
+
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodsResponse | null>(null);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoiceId>('cash');
+  const [posPaymentOpen, setPosPaymentOpen] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [changeMethodMode, setChangeMethodMode] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    api.getActiveEvent(token)
-      .then((event) => api.getFoodItems(token, event.id))
-      .then((foodItems) => {
+    Promise.all([
+      api.getActiveEvent(token).then((event) => {
+        setEventName(event.name);
+        return api.getFoodItems(token, event.id);
+      }),
+    ])
+      .then(([foodItems]) => {
         setItems(foodItems.filter((i) => i.active && !i.soldOut));
         const initial: Record<string, number> = {};
         foodItems.forEach((i) => { initial[i.id] = 0; });
@@ -39,6 +55,19 @@ export function BestellungPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const loadPaymentMethods = useCallback(async () => {
+    if (paymentMethods !== null || paymentMethodsLoading) return;
+    setPaymentMethodsLoading(true);
+    try {
+      const data = await api.getPaymentMethods();
+      setPaymentMethods(data);
+    } catch {
+      setPaymentMethods({ allowCashOnSite: true, methods: [] });
+    } finally {
+      setPaymentMethodsLoading(false);
+    }
+  }, [paymentMethods, paymentMethodsLoading]);
 
   const { totalCount, totalPrice, selectedItems } = useMemo(() => {
     let count = 0;
@@ -55,18 +84,98 @@ export function BestellungPage() {
     return { totalCount: count, totalPrice: price, selectedItems: selected };
   }, [items, quantities]);
 
+  const paymentSelection = useMemo(() => {
+    if (!paymentMethods) return buildPosPaymentSelection([], true);
+    return buildPosPaymentSelection(paymentMethods.methods, paymentMethods.allowCashOnSite);
+  }, [paymentMethods]);
+
+  useEffect(() => {
+    setPaymentChoice(paymentSelection.defaultChoice);
+  }, [paymentSelection.defaultChoice]);
+
+  useEffect(() => {
+    if (totalCount > 0) void loadPaymentMethods();
+  }, [totalCount, loadPaymentMethods]);
+
+  const resetOrderForm = () => {
+    const reset: Record<string, number> = {};
+    items.forEach((i) => { reset[i.id] = 0; });
+    setQuantities(reset);
+    setPendingOrder(null);
+    setPosPaymentOpen(false);
+    setChangeMethodMode(false);
+  };
+
   const handleSubmit = async () => {
     if (!token || selectedItems.length === 0) return;
     setSubmitting(true);
     setError('');
     try {
-      const order = await api.createCashierOrder(token, selectedItems);
+      const effectiveChoice = paymentSelection.showSelection && !changeMethodMode
+        ? paymentChoice
+        : changeMethodMode
+          ? paymentChoice
+          : paymentSelection.defaultChoice;
+
+      const order = await api.createCashierOrder(
+        token,
+        selectedItems,
+        isOnlineChoice(effectiveChoice) ? effectiveChoice : undefined
+      );
+
+      if (order.payment?.required) {
+        if (!order.payment.checkoutUrl) {
+          setError('Die Online-Zahlung konnte nicht gestartet werden. Bitte erneut versuchen oder Barzahlung wählen.');
+          return;
+        }
+        setPendingOrder(order);
+        setPosPaymentOpen(true);
+        setChangeMethodMode(false);
+        return;
+      }
+
       setLastOrderNumber(order.displayNumber);
-      const reset: Record<string, number> = {};
-      items.forEach((i) => { reset[i.id] = 0; });
-      setQuantities(reset);
+      resetOrderForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bestellung fehlgeschlagen');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePosComplete = () => {
+    if (pendingOrder) setLastOrderNumber(pendingOrder.displayNumber);
+    resetOrderForm();
+  };
+
+  const handlePosAbort = () => {
+    resetOrderForm();
+    setError('');
+  };
+
+  const handleChangeMethod = () => {
+    setPosPaymentOpen(false);
+    setChangeMethodMode(true);
+  };
+
+  const handleRetryWithNewMethod = async () => {
+    if (!token || !pendingOrder) return;
+    if (!isOnlineChoice(paymentChoice)) {
+      setError('Bitte wählen Sie eine Online-Zahlungsart');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      const payment = await api.createOrderCheckout(pendingOrder.id, paymentChoice);
+      setPendingOrder({
+        ...pendingOrder,
+        payment: { ...payment, required: true },
+      });
+      setChangeMethodMode(false);
+      setPosPaymentOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Zahlung konnte nicht gestartet werden');
     } finally {
       setSubmitting(false);
     }
@@ -128,6 +237,32 @@ export function BestellungPage() {
       </Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+      {changeMethodMode && pendingOrder && (
+        <Paper sx={{ p: 2, mb: 2, border: 2, borderColor: 'warning.main' }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            Andere Zahlungsart wählen
+          </Typography>
+          <PaymentMethodSelector
+            options={paymentSelection.options}
+            value={paymentChoice}
+            onChange={setPaymentChoice}
+          />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="contained"
+              onClick={() => { void handleRetryWithNewMethod(); }}
+              disabled={submitting || !isOnlineChoice(paymentChoice)}
+              sx={touchPrimaryButtonSx}
+            >
+              Mit dieser Zahlungsart fortfahren
+            </Button>
+            <Button variant="outlined" onClick={() => setChangeMethodMode(false)}>
+              Abbrechen
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
       <Grid container spacing={2} sx={{ mb: 12 }}>
         {items.map((item) => (
           <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -141,6 +276,20 @@ export function BestellungPage() {
         ))}
       </Grid>
 
+      {!changeMethodMode && paymentSelection.showSelection && totalCount > 0 && (
+        paymentMethodsLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2, mb: 2 }}>
+            <CircularProgress size={28} aria-label="Zahlungsarten werden geladen" />
+          </Box>
+        ) : (
+          <PaymentMethodSelector
+            options={paymentSelection.options}
+            value={paymentChoice}
+            onChange={setPaymentChoice}
+          />
+        )
+      )}
+
       <Paper
         sx={{
           p: 2,
@@ -148,7 +297,7 @@ export function BestellungPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: 1100,
+          zIndex: posPaymentOpen ? 1000 : 1100,
           borderRadius: 0,
           borderTop: 2,
           borderColor: 'primary.main',
@@ -173,7 +322,7 @@ export function BestellungPage() {
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={submitting || totalCount === 0}
+            disabled={submitting || totalCount === 0 || paymentMethodsLoading || posPaymentOpen}
             sx={{
               ...touchPrimaryButtonSx,
               minHeight: 72,
@@ -184,10 +333,25 @@ export function BestellungPage() {
             }}
           >
             <SaveIcon sx={{ fontSize: 32 }} />
-            Bestellung speichern
+            {submitting ? 'Wird gespeichert…' : 'Bestellung speichern'}
           </Button>
         </Stack>
       </Paper>
+
+      {pendingOrder?.payment && token && (
+        <PosPaymentDialog
+          open={posPaymentOpen}
+          order={pendingOrder}
+          payment={pendingOrder.payment}
+          eventName={eventName}
+          paymentMethods={paymentMethods?.methods ?? []}
+          paymentLabel={paymentSelection.options.find((o) => o.id === paymentChoice)?.label ?? 'Online bezahlen'}
+          token={token}
+          onComplete={handlePosComplete}
+          onChangeMethod={handleChangeMethod}
+          onAbort={handlePosAbort}
+        />
+      )}
     </StaffLayout>
   );
 }

@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { authService } from '../services/authService';
 import { AuthRequest } from '../middleware/auth';
+import { parsePermissionKeys } from '../platform/permissions';
 
 export const authController = {
   async login(req: AuthRequest, res: Response, next: NextFunction) {
@@ -21,12 +22,15 @@ export const authController = {
         res.status(404).json({ error: 'Benutzer nicht gefunden' });
         return;
       }
+
+      const permissions = parsePermissionKeys(user.role.permissions);
       res.json({
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role.name,
+        permissions,
       });
     } catch (err) {
       next(err);

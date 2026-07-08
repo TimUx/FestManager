@@ -19,7 +19,7 @@ class PaymentRegistryImpl {
 
   async getConfigured(context: FeatureContext): Promise<PaymentProvider[]> {
     const config = await context.getConfig<PaymentConfig>('payment');
-    return this.getAll().filter((p) => p.isConfigured(config));
+    return this.getAll().filter((p) => p.implemented && p.isConfigured(config));
   }
 
   async hasConfigured(context: FeatureContext): Promise<boolean> {

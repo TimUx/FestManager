@@ -1,0 +1,136 @@
+# ADR-008: Notification Module
+
+| Feld | Wert |
+|------|------|
+| **Status** | Accepted (implementiert) |
+| **Datum** | 2026-07-08 |
+
+## Ziel
+
+Benachrichtigungen (E-Mail, ntfy, Discord, Slack, Teams) als optionales Modul auslagern. Der Core kennt keine Kanäle – nur den `notificationServiceRegistry` Extension Point.
+
+## Motivation
+
+E-Mail lag im Core (`emailService`, `core.email`). Geplant und umgesetzt:
+
+- SMTP vollständig in der WebUI (nicht in Docker)
+- ntfy für Vereins-Alerts (z. B. Küche fertig)
+- Webhooks für Discord, Slack, Microsoft Teams
+- zentrale Ereignis→Kanal-Zuordnung
+
+## Architekturentscheidung
+
+### Architektur
+
+```
+Core (orderService, orderPayableAdapter)
+        │ emailService.send*()
+        ▼
+notificationServiceRegistry (Extension Point)
+        ▼
+NotificationServiceImpl → NotificationManager → NotificationRegistry
+        ├── SmtpChannel      (E-Mail)
+        ├── NtfyChannel
+        ├── DiscordChannel
+        ├── SlackChannel
+        └── TeamsChannel
+```
+
+Zusätzlich reagiert das Modul per Hook auf `ORDER_PAID` und `KITCHEN_COMPLETED` für Kanäle ohne direkten Core-Aufruf.
+
+### Komponenten (`modules/notifications/`)
+
+| Komponente | Datei | Verantwortung |
+|------------|-------|---------------|
+| `NotificationService` | `services/NotificationServiceImpl.ts` | Extension-Point-Implementierung |
+| `NotificationManager` | `NotificationManager.ts` | Dispatch, Templates, Health |
+| `NotificationRegistry` | `NotificationRegistry.ts` | Kanal-Registry |
+| Settings | `module.json` → `module.notifications` | SMTP, Webhooks, Ereignisse |
+| Hooks | `hooks.ts` | `ORDER_PAID`, `KITCHEN_COMPLETED` |
+| Migration | `migrateLegacyEmail.ts` | `core.email` → Modul |
+
+### Kanäle
+
+| Kanal | ID | Konfiguration |
+|-------|-----|---------------|
+| E-Mail (SMTP) | `email` | `smtp.*` in WebUI, verschlüsseltes Passwort |
+| ntfy | `ntfy` | Server-URL, Topic, optional Token |
+| Discord | `discord` | Webhook-URL (verschlüsselt) |
+| Slack | `slack` | Webhook-URL (verschlüsselt) |
+| Microsoft Teams | `teams` | Webhook-URL (verschlüsselt) |
+
+### Ereigniszuordnung
+
+| Ereignis | Standard-Kanäle | Auslöser |
+|----------|-----------------|----------|
+| `orderCreated` | E-Mail | `emailService` → Modul (Barzahlung, nach Zahlung) |
+| `orderCancelled` | E-Mail | `emailService` → Modul |
+| `orderPaid` | ntfy/Discord/Slack/Teams (E-Mail aus) | Hook |
+| `kitchenCompleted` | ntfy | Hook |
+
+### Admin-UI
+
+Pfad: **Administration → Module → Notifications → SMTP → Verbindung testen → Speichern**
+
+- Metadata-first: `/admin/settings/module.notifications`
+- SMTP-Test-Extension in `frontend/src/admin/settingsExtensions.tsx`
+- API: `POST /api/modules/features/notifications/admin/smtp/test`
+
+### Deaktivierungsverhalten
+
+| Zustand | Verhalten |
+|---------|-----------|
+| Modul deaktiviert | `notificationServiceRegistry` leer → `emailService` nutzt Legacy `core.email` |
+| Modul aktiviert, kein Kanal | Keine Benachrichtigungen |
+| Modul installiert | Settings editierbar; SMTP-Test-API ohne Aktivierung (`requireActivation: false`) |
+| Legacy `/admin/email` | Entfernt aus Core-Settings; API delegiert an Modul wenn installiert |
+
+### Konfiguration
+
+- Namespace: `module.notifications`
+- Secrets: `APP_ENCRYPTION_KEY` (nicht Docker)
+- Migration: bestehende `core.email`-Werte werden bei Modul-`initialize` übernommen
+
+## Vorteile
+
+- Core schlanker – keine SMTP-Felder mehr in Core-Admin
+- Neue Kanäle ohne Core-Release
+- Einheitliches Settings- und Test-Muster wie Payment-Modul
+
+## Nachteile
+
+- Bestehende `/admin/email`-Bookmarks müssen auf Modul-Settings umgestellt werden
+- Web Push (PWA) noch offen
+
+## Alternativen
+
+| Alternative | Bewertung |
+|-------------|-----------|
+| E-Mail im Core belassen | Widerspricht Modul-Strategie |
+| Externer Service (SendGrid) | Kosten, Datenschutz – später als Kanal möglich |
+
+## Auswirkungen
+
+- `emailService` delegiert an `notificationServiceRegistry` wenn Modul aktiv
+- `core.email` Schema aus Core-Admin entfernt (Legacy-Store bleibt für Migration)
+- `clubService` E-Mail-API proxyt zu `module.notifications` wenn installiert
+
+## Implementierungsstatus
+
+| Komponente | Status |
+|------------|--------|
+| NotificationServiceRegistry | ✅ |
+| SMTP / E-Mail | ✅ |
+| ntfy | ✅ |
+| Discord / Slack / Teams | ✅ |
+| Hook-Subscriber | ✅ |
+| Admin Settings + SMTP-Test | ✅ auch bei installiertem Modul (`requireActivation: false`) |
+| Legacy-Migration | ✅ |
+| Web Push | ⏳ offen |
+
+## Offene Punkte
+
+- [ ] Web Push (PWA, VAPID)
+- [ ] Retry/Dead-Letter bei fehlgeschlagenen Sends
+- [ ] DSGVO: Einwilligung für Marketing-Push
+- [ ] Template-Sprache (nur DE)

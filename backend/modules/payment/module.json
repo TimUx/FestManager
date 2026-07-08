@@ -12,9 +12,131 @@
     "optional": []
   },
   "permissions": [
-    { "key": "payment.view", "description": "Zahlungsstatus einsehen" },
-    { "key": "payment.settings", "description": "Zahlungseinstellungen verwalten" },
-    { "key": "payment.refund", "description": "Rückerstattungen durchführen" }
+    { "key": "payment.view", "description": "Zahlungsübersicht und Dashboard einsehen" },
+    { "key": "payment.manage", "description": "Zahlungsmodul verwalten" },
+    { "key": "payment.refund", "description": "Rückerstattungen durchführen" },
+    { "key": "payment.logs", "description": "Zahlungsprotokolle einsehen" },
+    { "key": "payment.statistics", "description": "Zahlungsstatistiken einsehen und exportieren" },
+    { "key": "payment.provider.configure", "description": "Zahlungsanbieter konfigurieren und testen" },
+    { "key": "payment.webhooks", "description": "Webhook-Ereignisse einsehen" },
+    { "key": "payment.settings", "description": "Zahlungseinstellungen verwalten (Legacy)" }
   ],
-  "minimumCoreVersion": "1.0.0"
+  "menus": [
+    {
+      "id": "payment-admin",
+      "label": "Payment",
+      "path": "/admin/payment",
+      "icon": "Payment",
+      "parentId": "modules",
+      "sortOrder": 10,
+      "requiredPermission": "payment.view"
+    }
+  ],
+  "reports": [
+    {
+      "id": "payment-admin",
+      "label": "Online-Zahlung",
+      "description": "Dashboard, Anbieter, Zahlungen, Statistiken und Protokolle",
+      "path": "/admin/payment",
+      "icon": "Payment",
+      "componentId": "payment.admin",
+      "sortOrder": 10,
+      "requiredPermission": "payment.view"
+    }
+  ],
+  "settings": {
+    "namespace": "module.payment",
+    "label": "Online-Zahlung",
+    "description": "Zahlungsanbieter und API-Schlüssel – alle Einstellungen nur in der Weboberfläche",
+    "adminPath": "/admin/settings/module.payment",
+    "permission": "payment.provider.configure",
+    "groups": [
+      { "id": "general", "label": "Allgemein" },
+      { "id": "stripe", "label": "Stripe" },
+      { "id": "paypal", "label": "PayPal" },
+      { "id": "vrPayment", "label": "VR Payment" },
+      { "id": "sPayment", "label": "S-Payment" },
+      { "id": "payone", "label": "PAYONE" },
+      { "id": "sumup", "label": "SumUp" }
+    ],
+    "fields": [
+      {
+        "key": "onlinePaymentForEvents",
+        "group": "general",
+        "label": "Online-Zahlung für Veranstaltungen",
+        "type": "boolean",
+        "default": true,
+        "helpText": "Wenn deaktiviert, werden Bestellungen ohne Zahlungsflow erstellt"
+      },
+      {
+        "key": "allowCashOnSite",
+        "group": "general",
+        "label": "Barzahlung vor Ort anbieten",
+        "type": "boolean",
+        "default": true,
+        "helpText": "Besucher können bei Abholung bar zahlen statt online"
+      },
+      {
+        "key": "defaultProvider",
+        "group": "general",
+        "label": "Standard-Anbieter",
+        "type": "select",
+        "helpText": "Wird verwendet, wenn mehrere Anbieter gleichzeitig aktiv sind",
+        "options": [
+          { "value": "stripe", "label": "Stripe" },
+          { "value": "paypal", "label": "PayPal" },
+          { "value": "vr-payment", "label": "VR Payment" },
+          { "value": "s-payment", "label": "S-Payment" },
+          { "value": "payone", "label": "PAYONE" },
+          { "value": "sumup", "label": "SumUp" }
+        ]
+      },
+      { "key": "stripe.enabled", "group": "stripe", "label": "Stripe aktivieren", "type": "boolean", "default": false, "helpText": "Technische Aktivierung – sichtbare Zahlungsarten unter „Zahlungsarten“ konfigurieren" },
+      { "key": "stripe.sandbox", "group": "stripe", "label": "Testmodus (Sandbox)", "type": "boolean", "default": true, "helpText": "Testzahlungen ohne echtes Geld – für Einrichtung empfohlen" },
+      { "key": "stripe.secretKey", "group": "stripe", "label": "Geheimer API-Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird von Stripe bereitgestellt. Niemals weitergeben." },
+      { "key": "stripe.publishableKey", "group": "stripe", "label": "Öffentlicher API-Schlüssel", "type": "string", "helpText": "Wird von Stripe bereitgestellt (beginnt mit pk_)" },
+      { "key": "stripe.webhookSecret", "group": "stripe", "label": "Webhook-Signatur", "type": "password", "encrypted": true, "helpText": "Wird vom Zahlungsanbieter bereitgestellt. Webhook-URL: /api/modules/features/payment/webhooks/stripe" },
+      { "key": "paypal.enabled", "group": "paypal", "label": "PayPal aktivieren", "type": "boolean", "default": false, "helpText": "Platzhalter – noch nicht implementiert" },
+      { "key": "paypal.sandbox", "group": "paypal", "label": "Testmodus (Sandbox)", "type": "boolean", "default": true },
+      { "key": "paypal.clientId", "group": "paypal", "label": "Client-ID", "type": "string", "helpText": "Wird von PayPal im Entwicklerportal bereitgestellt" },
+      { "key": "paypal.clientSecret", "group": "paypal", "label": "Geheimer Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird von PayPal bereitgestellt. Niemals weitergeben." },
+      { "key": "vrPayment.enabled", "group": "vrPayment", "label": "VR Payment aktivieren", "type": "boolean", "default": false },
+      { "key": "vrPayment.merchantId", "group": "vrPayment", "label": "Händler-ID", "type": "string", "helpText": "Wird von VR Payment bereitgestellt" },
+      { "key": "vrPayment.apiKey", "group": "vrPayment", "label": "API-Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird vom Zahlungsanbieter bereitgestellt" },
+      { "key": "sPayment.enabled", "group": "sPayment", "label": "S-Payment aktivieren", "type": "boolean", "default": false },
+      { "key": "sPayment.merchantId", "group": "sPayment", "label": "Händler-ID", "type": "string" },
+      { "key": "sPayment.apiKey", "group": "sPayment", "label": "API-Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird vom Zahlungsanbieter bereitgestellt" },
+      { "key": "payone.enabled", "group": "payone", "label": "PAYONE aktivieren", "type": "boolean", "default": false },
+      { "key": "payone.merchantId", "group": "payone", "label": "Händler-ID", "type": "string" },
+      { "key": "payone.portalId", "group": "payone", "label": "Portal-ID", "type": "string", "helpText": "Wird von PAYONE bereitgestellt" },
+      { "key": "payone.key", "group": "payone", "label": "Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird vom Zahlungsanbieter bereitgestellt" },
+      { "key": "sumup.enabled", "group": "sumup", "label": "SumUp aktivieren", "type": "boolean", "default": false },
+      { "key": "sumup.apiKey", "group": "sumup", "label": "API-Schlüssel", "type": "password", "encrypted": true, "helpText": "Wird von SumUp bereitgestellt" },
+      { "key": "sumup.merchantCode", "group": "sumup", "label": "Händler-Code", "type": "string", "helpText": "Wird von SumUp bereitgestellt" }
+    ]
+  },
+  "routes": [
+    { "mountPath": "/", "webhook": true, "public": false }
+  ],
+  "widgets": [
+    {
+      "id": "payment-status",
+      "title": "Online-Zahlung",
+      "componentId": "payment.status",
+      "sortOrder": 10
+    }
+  ],
+  "healthChecks": [
+    {
+      "id": "providers",
+      "label": "Zahlungsanbieter",
+      "description": "Verbindung zu konfigurierten Providern"
+    }
+  ],
+  "minimumCoreVersion": "1.0.0",
+  "qa": {
+    "participatesInScenarios": true,
+    "providesSeed": true,
+    "integrationTest": "qa/integration.test.ts"
+  }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Typography,
   TextField,
@@ -17,9 +17,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { PublicLayout } from '@/components/PublicLayout';
 import { FoodItemCard } from '@/components/FoodItemCard';
 import { TurnstileWidget } from '@/components/TurnstileWidget';
+import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
+import { PaymentDialog } from '@/components/PaymentDialog';
 import { api, formatPrice } from '@/services/api';
-import { FoodItem } from '@/types';
+import { FoodItem, Order } from '@/types';
 import { OrderFieldConfig, DEFAULT_ORDER_FIELD_CONFIG } from '@/types/club';
+import type { PaymentChoiceId, PaymentMethodsResponse } from '@/types/payment';
+import { buildPaymentSelection, isOnlineChoice, getPaymentOptionLabel } from '@/utils/paymentSelection';
 import { touchFieldSx, touchPrimaryButtonSx, touchButtonSx } from '@/theme/touch';
 
 function fieldLabel(name: string, required: boolean): string {
@@ -54,6 +58,13 @@ export function OrderPage() {
   const [honeypot, setHoneypot] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [fieldConfig, setFieldConfig] = useState<OrderFieldConfig>(DEFAULT_ORDER_FIELD_CONFIG);
+
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodsResponse | null>(null);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoiceId>('cash');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [changeMethodMode, setChangeMethodMode] = useState(false);
 
   const turnstileRequired = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
 
@@ -92,6 +103,36 @@ export function OrderPage() {
     [fieldConfig, firstName, lastName, email, phone]
   );
 
+  const paymentSelection = useMemo(() => {
+    if (!paymentMethods) {
+      return buildPaymentSelection([], true);
+    }
+    return buildPaymentSelection(paymentMethods.methods, paymentMethods.allowCashOnSite);
+  }, [paymentMethods]);
+
+  useEffect(() => {
+    setPaymentChoice(paymentSelection.defaultChoice);
+  }, [paymentSelection.defaultChoice]);
+
+  const loadPaymentMethods = useCallback(async () => {
+    if (paymentMethods !== null || paymentMethodsLoading) return;
+    setPaymentMethodsLoading(true);
+    try {
+      const data = await api.getPaymentMethods();
+      setPaymentMethods(data);
+    } catch {
+      setPaymentMethods({ allowCashOnSite: true, methods: [] });
+    } finally {
+      setPaymentMethodsLoading(false);
+    }
+  }, [paymentMethods, paymentMethodsLoading]);
+
+  useEffect(() => {
+    if (totalCount > 0 && formValid) {
+      void loadPaymentMethods();
+    }
+  }, [totalCount, formValid, loadPaymentMethods]);
+
   const handleSubmit = async () => {
     if (!formValid) {
       setError('Bitte alle Pflichtfelder ausfüllen');
@@ -109,19 +150,29 @@ export function OrderPage() {
     setSubmitting(true);
     setError('');
     try {
+      const effectiveChoice = paymentSelection.showSelection
+        ? paymentChoice
+        : paymentSelection.defaultChoice;
+
       const order = await api.createOrder({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         items: selectedItems,
+        paymentMethodId: isOnlineChoice(effectiveChoice) ? effectiveChoice : undefined,
         formStartedAt: formStartedAt.current,
         _hp: honeypot,
         turnstileToken: turnstileToken || undefined,
       });
 
-      if ('payment' in order && order.payment?.required && order.payment.checkoutUrl) {
-        window.location.href = order.payment.checkoutUrl;
+      if (order.payment?.required) {
+        if (!order.payment.checkoutUrl) {
+          setError('Die Online-Zahlung konnte nicht gestartet werden. Bitte versuchen Sie es erneut oder wählen Sie Barzahlung.');
+          return;
+        }
+        setPendingOrder(order);
+        setPaymentDialogOpen(true);
         return;
       }
 
@@ -132,6 +183,45 @@ export function OrderPage() {
       setSubmitting(false);
     }
   };
+
+  const handlePaymentSuccess = (order: Order) => {
+    setPaymentDialogOpen(false);
+    navigate(`/status/${order.id}`, { state: { order } });
+  };
+
+  const handleChangePaymentMethod = () => {
+    setPaymentDialogOpen(false);
+    setChangeMethodMode(true);
+    setError('');
+  };
+
+  const handleRetryWithNewMethod = async () => {
+    if (!pendingOrder) return;
+    const choice = paymentChoice;
+    if (!isOnlineChoice(choice)) {
+      setError('Bitte wählen Sie eine Online-Zahlungsart');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      const payment = await api.createOrderCheckout(pendingOrder.id, choice);
+      setPendingOrder({ ...pendingOrder, payment: { ...payment, required: true } });
+      setChangeMethodMode(false);
+      setPaymentDialogOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Zahlung konnte nicht gestartet werden');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitLabel = useMemo(() => {
+    if (submitting) return 'Wird gesendet…';
+    const choice = paymentSelection.showSelection ? paymentChoice : paymentSelection.defaultChoice;
+    if (isOnlineChoice(choice)) return 'Bestellen und bezahlen';
+    return 'Bestellung absenden';
+  }, [submitting, paymentSelection, paymentChoice]);
 
   if (loading) {
     return (
@@ -168,7 +258,7 @@ export function OrderPage() {
                 {eventName || 'Essen bestellen'}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
-                Wählen Sie Ihre Gerichte und geben Sie Ihre Daten ein.
+                Wählen Sie zuerst Ihre Gerichte, dann geben Sie Ihre Daten ein.
               </Typography>
             </Box>
             <IconButton
@@ -209,52 +299,6 @@ export function OrderPage() {
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-          <Paper sx={{ p: 3, mb: 2 }} data-testid="order-customer-form">
-            <Typography variant="h5" gutterBottom fontWeight={700}>
-              Ihre Daten
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label={fieldLabel('Vorname', fieldConfig.firstNameRequired)} fullWidth required={fieldConfig.firstNameRequired} value={firstName} onChange={(e) => setFirstName(e.target.value)} sx={touchFieldSx} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label={fieldLabel('Nachname', fieldConfig.lastNameRequired)} fullWidth required={fieldConfig.lastNameRequired} value={lastName} onChange={(e) => setLastName(e.target.value)} sx={touchFieldSx} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label={fieldLabel('E-Mail', fieldConfig.emailRequired)} type="email" fullWidth required={fieldConfig.emailRequired} value={email} onChange={(e) => setEmail(e.target.value)} sx={touchFieldSx} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label={fieldLabel('Telefon', fieldConfig.phoneRequired)} fullWidth required={fieldConfig.phoneRequired} value={phone} onChange={(e) => setPhone(e.target.value)} sx={touchFieldSx} />
-              </Grid>
-            </Grid>
-            {/* Honeypot – für Bots unsichtbar */}
-            <Box
-              component="label"
-              aria-hidden
-              sx={{
-                position: 'absolute',
-                width: 1,
-                height: 1,
-                padding: 0,
-                margin: -1,
-                overflow: 'hidden',
-                clip: 'rect(0,0,0,0)',
-                whiteSpace: 'nowrap',
-                border: 0,
-              }}
-            >
-              Website
-              <input
-                type="text"
-                name="website"
-                value={honeypot}
-                onChange={(e) => setHoneypot(e.target.value)}
-                tabIndex={-1}
-                autoComplete="off"
-              />
-            </Box>
-          </Paper>
-
           <Typography variant="h5" gutterBottom fontWeight={700} sx={{ mb: 1 }}>
             Gerichte
           </Typography>
@@ -283,6 +327,94 @@ export function OrderPage() {
               </Grid>
             ))}
           </Grid>
+        </Box>
+
+        <Box sx={{ flexShrink: 0 }}>
+          <Paper sx={{ p: 3, mb: 2, mt: 1 }} data-testid="order-customer-form">
+            <Typography variant="h5" gutterBottom fontWeight={700}>
+              Ihre Daten
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField label={fieldLabel('Vorname', fieldConfig.firstNameRequired)} fullWidth required={fieldConfig.firstNameRequired} value={firstName} onChange={(e) => setFirstName(e.target.value)} sx={touchFieldSx} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField label={fieldLabel('Nachname', fieldConfig.lastNameRequired)} fullWidth required={fieldConfig.lastNameRequired} value={lastName} onChange={(e) => setLastName(e.target.value)} sx={touchFieldSx} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField label={fieldLabel('E-Mail', fieldConfig.emailRequired)} type="email" fullWidth required={fieldConfig.emailRequired} value={email} onChange={(e) => setEmail(e.target.value)} sx={touchFieldSx} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField label={fieldLabel('Telefon', fieldConfig.phoneRequired)} fullWidth required={fieldConfig.phoneRequired} value={phone} onChange={(e) => setPhone(e.target.value)} sx={touchFieldSx} />
+              </Grid>
+            </Grid>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Ihre Daten werden nur zur Abwicklung dieser Bestellung verwendet und nach der Veranstaltung gemäß unserer Datenschutzerklärung gelöscht.
+            </Alert>
+            <Box
+              component="label"
+              aria-hidden
+              sx={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: 'hidden',
+                clip: 'rect(0,0,0,0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+              }}
+            >
+              Website
+              <input
+                type="text"
+                name="website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </Box>
+          </Paper>
+
+          {changeMethodMode && pendingOrder && paymentSelection.showSelection && (
+            <Paper sx={{ p: 2, mb: 2, border: 2, borderColor: 'warning.main' }}>
+              <Typography variant="h6" fontWeight={700} gutterBottom>
+                Andere Zahlungsart wählen
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Ihre Bestellung {pendingOrder.displayNumber} bleibt gespeichert.
+              </Typography>
+              <PaymentMethodSelector
+                options={paymentSelection.options.filter((o) => o.type === 'online')}
+                value={paymentChoice}
+                onChange={setPaymentChoice}
+              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Button variant="contained" onClick={() => { void handleRetryWithNewMethod(); }} disabled={submitting || !isOnlineChoice(paymentChoice)} sx={touchPrimaryButtonSx}>
+                  Mit dieser Zahlungsart fortfahren
+                </Button>
+                <Button variant="outlined" onClick={() => setChangeMethodMode(false)} sx={touchButtonSx}>
+                  Abbrechen
+                </Button>
+              </Stack>
+            </Paper>
+          )}
+
+          {!changeMethodMode && paymentSelection.showSelection && totalCount > 0 && (
+            paymentMethodsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={28} aria-label="Zahlungsarten werden geladen" />
+              </Box>
+            ) : (
+              <PaymentMethodSelector
+                options={paymentSelection.options}
+                value={paymentChoice}
+                onChange={setPaymentChoice}
+              />
+            )
+          )}
         </Box>
 
         <Paper
@@ -315,7 +447,7 @@ export function OrderPage() {
             <Button
               variant="contained"
               onClick={handleSubmit}
-              disabled={submitting || totalCount === 0 || !formValid || (turnstileRequired && !turnstileToken)}
+              disabled={submitting || totalCount === 0 || !formValid || (turnstileRequired && !turnstileToken) || paymentMethodsLoading}
               sx={{
                 ...touchPrimaryButtonSx,
                 width: { xs: '100%', sm: 'auto' },
@@ -327,11 +459,26 @@ export function OrderPage() {
               }}
             >
               <ShoppingCartIcon sx={{ fontSize: 32 }} />
-              {submitting ? 'Wird gesendet…' : 'Bestellung absenden'}
+              {submitLabel}
             </Button>
           </Stack>
         </Paper>
       </Box>
+
+      {pendingOrder?.payment && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          order={pendingOrder}
+          payment={pendingOrder.payment}
+          paymentLabel={getPaymentOptionLabel(
+            paymentSelection.options,
+            paymentSelection.showSelection ? paymentChoice : paymentSelection.defaultChoice
+          )}
+          onSuccess={handlePaymentSuccess}
+          onChangeMethod={handleChangePaymentMethod}
+          onClose={() => setPaymentDialogOpen(false)}
+        />
+      )}
     </PublicLayout>
   );
 }

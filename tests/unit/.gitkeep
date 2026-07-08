@@ -1,0 +1,2 @@
+/** Platzhalter für reine Unit-Tests auf Root-Ebene (Backend/Frontend haben eigene Suites). */
+export {};

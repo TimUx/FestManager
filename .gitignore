@@ -6,6 +6,9 @@ build/
 uploads/
 .DS_Store
 coverage/
+artifacts/
+test-results/
+playwright-report/
 .vite/
 *.tsbuildinfo
 docs/screenshots/_raw/

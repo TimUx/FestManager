@@ -1,10 +1,24 @@
 import { z } from 'zod';
 
 export const PAYMENT_PERMISSIONS = {
-  REFUND: 'payment.refund',
-  SETTINGS: 'payment.settings',
   VIEW: 'payment.view',
+  MANAGE: 'payment.manage',
+  REFUND: 'payment.refund',
+  LOGS: 'payment.logs',
+  STATISTICS: 'payment.statistics',
+  PROVIDER_CONFIGURE: 'payment.provider.configure',
+  WEBHOOKS: 'payment.webhooks',
+  /** @deprecated use PROVIDER_CONFIGURE */
+  SETTINGS: 'payment.settings',
 } as const;
+
+const methodTypeConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  recommended: z.boolean().default(false),
+  sortOrder: z.number().default(10),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+});
 
 const providerEnabledSchema = z.object({
   enabled: z.boolean().default(false),
@@ -13,6 +27,8 @@ const providerEnabledSchema = z.object({
 export const paymentConfigSchema = z.object({
   defaultProvider: z.string().optional(),
   onlinePaymentForEvents: z.boolean().default(true),
+  allowCashOnSite: z.boolean().default(true),
+  methodTypes: z.record(methodTypeConfigSchema).optional(),
   stripe: z.object({
     enabled: z.boolean().default(false),
     secretKey: z.string().optional(),
@@ -48,6 +64,7 @@ export type PaymentConfig = z.infer<typeof paymentConfigSchema>;
 
 export const defaultPaymentConfig: PaymentConfig = {
   onlinePaymentForEvents: true,
+  allowCashOnSite: true,
   stripe: { enabled: false, sandbox: true },
   paypal: { enabled: false, sandbox: true },
   vrPayment: { enabled: false },

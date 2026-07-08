@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "screenshots": "echo 'Nutze npm run screenshots im Projektroot'"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -17,11 +18,13 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
+    "qrcode": "^1.5.4",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^4.5.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",

@@ -3,11 +3,13 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { AppError } from './errorHandler';
 import { prisma } from '../config/database';
+import { parsePermissionKeys } from '../platform/permissions';
 
 export interface AuthPayload {
   userId: string;
   email: string;
   role: string;
+  permissions?: string[];
 }
 
 export interface AuthRequest extends Request {
@@ -59,5 +61,6 @@ export async function loadUser(req: AuthRequest, _res: Response, next: NextFunct
     return;
   }
   req.user.role = user.role.name;
+  req.user.permissions = parsePermissionKeys(user.role.permissions);
   next();
 }

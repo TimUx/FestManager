@@ -17,11 +17,11 @@ Moderne Webanwendung zur Verwaltung von Essensbestellungen bei Vereinsveranstalt
 | **Bestellung** | Bestellungen vor Ort aufgeben (ohne Kundendaten) |
 | **Vereinseinstellungen** | Name, Logo, Kontaktdaten (Admin) |
 | **Bestell-Einstellungen** | Pflichtfelder & Stornierungsfrist (Admin) |
-| **E-Mail-Einstellungen** | SMTP-Server für Bestätigungsmails (Admin) |
+| **Benachrichtigungen** | SMTP, ntfy, Discord, Slack, Teams (Admin) |
 | **Speisenverwaltung** | CRUD mit Bild-Upload (Admin) |
 | **Veranstaltungsverwaltung** | Mehrere Events, eine aktiv (Admin) |
 | **Modulverwaltung** | Optionale Erweiterungen installieren & aktivieren (Admin) |
-| **Online-Zahlung** | Stripe-Checkout für Vorbestellungen (optional, Modul) |
+| **Online-Zahlung** | Stripe-Checkout, Smart Payment, Admin-Dashboard (optional, Modul) |
 
 ## Vorausbestellungen
 
@@ -43,8 +43,9 @@ Die Plattform unterstützt **optionale Module**, die mit dem Docker-Image ausgel
 
 | Modul | Status | Beschreibung |
 |-------|--------|--------------|
-| **Online-Zahlung** | ✅ Vollständig | Stripe-Checkout, Webhooks, Rückerstattungen |
-| Lagerverwaltung, Bondruck, Gutscheine, … | 🔜 Geplant | Vorbereitet, noch nicht aktiv |
+| **Online-Zahlung** | ✅ Vollständig | Stripe, Smart Payment, Admin unter `/admin/payment` |
+| **Benachrichtigungen** | ✅ Vollständig | SMTP, ntfy, Discord, Slack, Teams |
+| Lagerverwaltung | 🔜 Geplant | Bestandsführung für Speisen |
 
 **Wichtig:** Vereine mit ausschließlich Barzahlung an der Kasse müssen **kein Modul aktivieren**. Ohne aktiviertes Payment-Modul verhält sich die Plattform exakt wie zuvor.
 
@@ -88,9 +89,13 @@ Technische Details: [Modul-Architektur](docs/MODULE_ARCHITECTURE.md) · Admin-An
 |:---:|:---:|:---:|
 | ![Benutzer](docs/screenshots/17-benutzerverwaltung.png) | ![Veranstaltungen](docs/screenshots/12-veranstaltungen.png) | ![Speisen](docs/screenshots/11-speisenverwaltung.png) |
 
-| Modulverwaltung | Payment-Einstellungen |
+| Modulverwaltung | Payment-Administration |
 |:---:|:---:|
-| ![Module](docs/screenshots/20-modulverwaltung.png) | ![Payment](docs/screenshots/21-payment-einstellungen.png) |
+| ![Module](docs/screenshots/20-modulverwaltung.png) | ![Payment-Admin](docs/screenshots/21-payment-admin.png) |
+
+| Payment-Einstellungen (Tab) |
+|:---:|
+| ![Payment-Einstellungen](docs/screenshots/22-payment-einstellungen.png) |
 
 ## Schnellstart
 
@@ -152,11 +157,13 @@ Das Backend synchronisiert das Datenbankschema automatisch per `prisma db push` 
 | `/admin/veranstaltungen` | Veranstaltungen | ADMIN |
 | `/admin/speisen` | Speisenverwaltung | ADMIN |
 | `/admin/bestellung` | Pflichtfelder & Stornierungsfrist | ADMIN |
-| `/admin/email` | SMTP / E-Mail-Versand | ADMIN |
+| `/admin/email` | SMTP / Benachrichtigungen (Weiterleitung → Modul-Settings) | ADMIN |
 | `/admin/module` | Modulverwaltung | ADMIN |
-| `/admin/module/payment` | Payment-Einstellungen (wenn Modul aktiv) | ADMIN |
+| `/admin/payment` | Payment-Administration (Dashboard, Provider, Zahlungen) | ADMIN |
+| `/admin/settings/module.payment` | API-Schlüssel & Provider (alternativ Tab „Einstellungen“) | ADMIN |
+| `/admin/settings/module.notifications` | E-Mail & Benachrichtigungskanäle | ADMIN |
 
-> Alte Routen `/mitarbeiter/kasse`, `/mitarbeiter/lokale-kasse`, `/mitarbeiter/verein`, `/mitarbeiter/speisen` und `/mitarbeiter/veranstaltungen` leiten automatisch weiter.
+> Legacy: `/admin/module/payment` → `/admin/payment` · `/admin/email` → `/admin/settings/module.notifications`
 
 ## Dokumentation
 
@@ -164,6 +171,7 @@ Das Backend synchronisiert das Datenbankschema automatisch per `prisma db push` 
 |----------|-----------|
 | [Developer Guide](docs/DEVELOPER_GUIDE.md) | Entwickler |
 | [Modul-Architektur](docs/MODULE_ARCHITECTURE.md) | Entwickler (Module, Payment, PayableResource) |
+| [Architektur & ADRs](docs/architecture/README.md) | Entwickler (ADR, Analyse, Migrationsplan) |
 | [Admin Guide](docs/ADMIN_GUIDE.md) | Administratoren |
 | [User Guide](docs/USER_GUIDE.md) | Mitarbeiter (Küche, Abholung) |
 

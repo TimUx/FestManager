@@ -21,7 +21,9 @@ import {
 } from '../utils/helpers';
 import { emitOrderCreated, emitOrderUpdate } from '../socket';
 import { emailService } from './emailService';
-import { featureHooks, CORE_HOOKS, paymentServiceRegistry } from '../module-system';
+import { hookSystem } from '../platform/bootstrap';
+import { CORE_HOOKS } from '../platform/types';
+import { getPaymentServiceRegistry, getPayableResourceRegistry } from '../core/extensionPoints';
 
 type OrderWithRelations = Order & {
   customer?: { firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
@@ -47,7 +49,7 @@ async function getCancellationInfo(order: OrderWithRelations): Promise<Cancellat
     return { canCancel: false };
   }
 
-  const settings = await clubService.getSettings();
+  const settings = await clubService.getOrderSettings();
   const deadline = getCancellationDeadline(
     order.event.date,
     order.event.startTime,
@@ -70,6 +72,7 @@ async function getCancellationInfo(order: OrderWithRelations): Promise<Cancellat
 function mapOrder(order: OrderWithRelations, cancellation?: CancellationInfo) {
   return {
     id: order.id,
+    eventId: order.eventId,
     orderNumber: order.orderNumber,
     displayNumber: formatOrderNumber(order.orderNumber),
     orderDate: order.orderDate,
@@ -145,7 +148,7 @@ export const orderService = {
       status: statusFilter,
     });
     const ids = orders.map((o) => o.id);
-    const releasedIds = new Set(await paymentServiceRegistry.filterReleasedIds('order', ids));
+    const releasedIds = new Set(await getPaymentServiceRegistry().filterReleasedIds('order', ids));
     const filtered = orders.filter((o) => releasedIds.has(o.id));
     return filtered.map((o) => mapOrder(o as OrderWithRelations));
   },
@@ -153,6 +156,10 @@ export const orderService = {
   async getById(id: string) {
     const order = await orderRepository.findById(id);
     if (!order) throw new AppError(404, 'Bestellung nicht gefunden');
+    const releasedIds = await getPaymentServiceRegistry().filterReleasedIds('order', [id]);
+    if (!releasedIds.includes(id)) {
+      throw new AppError(404, 'Bestellung nicht gefunden');
+    }
     return mapOrderWithCancellation(order as OrderWithRelations);
   },
 
@@ -184,16 +191,8 @@ export const orderService = {
     return mapOrderWithCancellation(order as OrderWithRelations);
   },
 
-  async lookupByNumber(orderNumber: number) {
-    const event = await eventService.getActive();
-    const orderDate = getEventOrderDate(event.date);
-    const order = await orderRepository.findByOrderNumber(
-      event.id,
-      orderDate,
-      orderNumber
-    );
-    if (!order) throw new AppError(404, 'Bestellung nicht gefunden');
-    return mapOrder(order as OrderWithRelations);
+  async lookupByNumber(orderNumber: number, lastName: string) {
+    return this.lookupByNumberAndName(orderNumber, lastName);
   },
 
   async createOnlineOrder(data: {
@@ -202,6 +201,7 @@ export const orderService = {
     email?: string;
     phone?: string;
     items: { foodItemId: string; quantity: number }[];
+    paymentMethodId?: string;
   }) {
     const event = await eventService.getActive();
     if (!event.onlineOrdersActive || event.ordersClosed) {
@@ -218,21 +218,22 @@ export const orderService = {
 
     validateOrderFields(customerData, orderSettings.fields);
 
-    const paymentAvailable = await paymentServiceRegistry.isAvailable();
+    const paymentAvailable = await getPaymentServiceRegistry().isAvailable();
+    const payOnline = Boolean(paymentAvailable && data.paymentMethodId);
+
     const mapped = await this._createOrder(event, 'ONLINE', data.items, customerData, {
-      skipKitchenNotify: paymentAvailable,
+      skipKitchenNotify: payOnline,
     });
 
-    if (paymentAvailable) {
+    if (payOnline && data.paymentMethodId) {
       const { config } = await import('../config');
-      const { payableResourceRegistry } = await import('../module-system/extension-points');
-      const resource = await payableResourceRegistry.toPayableResource(
+      const resource = await getPayableResourceRegistry().toPayableResource(
         'order',
         mapped.id,
         config.corsOrigin
       );
       if (resource) {
-        const checkout = await paymentServiceRegistry.createCheckout(resource);
+        const checkout = await getPaymentServiceRegistry().createCheckout(resource, data.paymentMethodId);
         if (checkout) {
           return {
             ...mapped,
@@ -240,7 +241,8 @@ export const orderService = {
               required: true,
               checkoutUrl: checkout.checkoutUrl,
               sessionId: checkout.sessionId,
-              providerId: checkout.providerId,
+              paymentStatus: checkout.paymentStatus,
+              expiresAt: checkout.expiresAt,
             },
           };
         }
@@ -251,17 +253,44 @@ export const orderService = {
     return mapped;
   },
 
+  async createOrderCheckout(orderId: string, paymentMethodId: string) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new AppError(404, 'Bestellung nicht gefunden');
+    if (order.source !== 'ONLINE') throw new AppError(400, 'Nur für Online-Bestellungen');
+
+    const paymentAvailable = await getPaymentServiceRegistry().isAvailable();
+    if (!paymentAvailable) throw new AppError(400, 'Onlinezahlung nicht verfügbar');
+
+    const released = await getPaymentServiceRegistry().isResourceReleased('order', orderId);
+    if (released) throw new AppError(400, 'Bestellung ist bereits freigegeben');
+
+    const { config } = await import('../config');
+    const resource = await getPayableResourceRegistry().toPayableResource('order', orderId, config.corsOrigin);
+    if (!resource) throw new AppError(404, 'Bestellung nicht gefunden');
+
+    const checkout = await getPaymentServiceRegistry().createCheckout(resource, paymentMethodId);
+    if (!checkout) throw new AppError(400, 'Zahlung konnte nicht gestartet werden');
+
+    return {
+      required: true,
+      checkoutUrl: checkout.checkoutUrl,
+      sessionId: checkout.sessionId,
+      paymentStatus: checkout.paymentStatus,
+      expiresAt: checkout.expiresAt,
+    };
+  },
+
   async _releaseOrderToKitchen(
     event: { id: string; date: Date; startTime: string },
     mapped: Awaited<ReturnType<typeof mapOrderWithCancellation>>,
     customerData?: { email?: string }
   ) {
     emitOrderCreated(event.id, mapped);
-    featureHooks.emitAsync(CORE_HOOKS.ORDER_CREATED, mapped);
+    hookSystem.emitAsync(CORE_HOOKS.ORDER_CREATED, mapped);
 
     if (customerData?.email) {
       const club = await clubService.getPublic();
-      const settings = await clubService.getSettings();
+      const settings = await clubService.getOrderSettings();
       const deadline = getCancellationDeadline(
         event.date,
         event.startTime,
@@ -295,12 +324,62 @@ export const orderService = {
     }
   },
 
-  async createCashierOrder(items: { foodItemId: string; quantity: number }[]) {
+  async createCashierOrder(
+    items: { foodItemId: string; quantity: number }[],
+    paymentMethodId?: string
+  ) {
     const event = await eventService.getActive();
     if (!event.cashierActive || event.ordersClosed) {
       throw new AppError(403, 'Kassenbestellungen sind derzeit nicht möglich');
     }
-    return this._createOrder(event, 'CASHIER', items);
+
+    const paymentAvailable = await getPaymentServiceRegistry().isAvailable();
+    const payOnline = Boolean(paymentAvailable && paymentMethodId);
+
+    const mapped = await this._createOrder(event, 'CASHIER', items, undefined, {
+      skipKitchenNotify: payOnline,
+    });
+
+    if (payOnline && paymentMethodId) {
+      const { config } = await import('../config');
+      const resource = await getPayableResourceRegistry().toPayableResource(
+        'order',
+        mapped.id,
+        config.corsOrigin
+      );
+      if (resource) {
+        const checkout = await getPaymentServiceRegistry().createCheckout(resource, paymentMethodId);
+        if (checkout) {
+          return {
+            ...mapped,
+            payment: {
+              required: true,
+              checkoutUrl: checkout.checkoutUrl,
+              sessionId: checkout.sessionId,
+              paymentStatus: checkout.paymentStatus,
+              expiresAt: checkout.expiresAt,
+            },
+          };
+        }
+      }
+      await orderService._releaseOrderToKitchen(event, mapped);
+    }
+
+    return mapped;
+  },
+
+  async abortCashierOrderPayment(orderId: string, sessionId: string) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new AppError(404, 'Bestellung nicht gefunden');
+    if (order.source !== 'CASHIER') throw new AppError(400, 'Nur für Kassenbestellungen');
+
+    try {
+      await getPaymentServiceRegistry().cancelCheckout(sessionId);
+    } catch {
+      /* Session ggf. bereits abgelaufen */
+    }
+
+    return this.updateStatus(orderId, 'CANCELLED');
   },
 
   async cancelOnlineOrder(id: string, lastName: string) {
@@ -318,7 +397,7 @@ export const orderService = {
       throw new AppError(403, 'Stornierung nicht möglich – Nachname stimmt nicht überein');
     }
 
-    const settings = await clubService.getSettings();
+    const settings = await clubService.getOrderSettings();
     if (
       !canCustomerCancelOrder(
         order.status,
@@ -434,13 +513,13 @@ export const orderService = {
     const updated = await orderRepository.updateStatus(id, status, changedBy, extra);
     const mapped = await mapOrderWithCancellation(updated as OrderWithRelations);
     emitOrderUpdate(order.eventId, mapped);
-    featureHooks.emitAsync(CORE_HOOKS.ORDER_STATUS_CHANGED, mapped);
+    hookSystem.emitAsync(CORE_HOOKS.ORDER_STATUS_CHANGED, mapped);
 
     if (status === 'CANCELLED') {
-      featureHooks.emitAsync(CORE_HOOKS.ORDER_CANCELLED, mapped);
+      hookSystem.emitAsync(CORE_HOOKS.ORDER_CANCELLED, mapped);
     }
     if (status === 'READY') {
-      featureHooks.emitAsync(CORE_HOOKS.KITCHEN_COMPLETED, mapped);
+      hookSystem.emitAsync(CORE_HOOKS.KITCHEN_COMPLETED, mapped);
     }
 
     if (status === 'CANCELLED' && order.source === 'ONLINE' && order.customer?.email) {

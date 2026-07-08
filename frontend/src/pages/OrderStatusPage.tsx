@@ -58,7 +58,7 @@ export function OrderStatusPage() {
 
   useEffect(() => {
     if (!order) return;
-    joinOrder(order.id);
+    joinOrder(order.id, order.customer?.lastName);
     const unsub = onOrderUpdated((updated) => {
       const updatedOrder = updated as Order;
       if (updatedOrder.id === order.id) {

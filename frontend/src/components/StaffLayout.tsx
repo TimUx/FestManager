@@ -31,6 +31,8 @@ import { getImageUrl } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { startPrintJobListener } from '@/modules/printer/printBridge';
+import { configureSocketAuth } from '@/services/socket';
 
 const DRAWER_WIDTH = 260;
 
@@ -61,7 +63,7 @@ interface StaffLayoutProps {
 export function StaffLayout({ children, title, fullWidth = false }: StaffLayoutProps) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(true);
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, token } = useAuth();
   const { mode, toggleMode } = useThemeMode();
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,6 +76,15 @@ export function StaffLayout({ children, title, fullWidth = false }: StaffLayoutP
     setMenuOpen(!isFocusModePath(location.pathname));
     setMobileDrawerOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    configureSocketAuth(token);
+  }, [token]);
+
+  useEffect(() => {
+    const unsubPrint = startPrintJobListener();
+    return () => unsubPrint();
+  }, []);
 
   const filteredNav = navItems.filter(
     (item) => (item.roles.includes('ADMIN') && isAdmin) || item.roles.includes('STAFF')
