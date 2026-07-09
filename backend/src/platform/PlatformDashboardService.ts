@@ -98,6 +98,9 @@ export class PlatformMonitoringService {
     }
 
     const moduleCount = await prisma.tenantModule.count({ where: { enabled: true } });
+    const dbPing = await this.pingDb();
+    const { getSocketStats } = await import('../socket');
+    const { performanceMetrics } = await import('./metrics/performanceMetrics');
 
     return {
       cpu: { cores: os.cpus().length, loadAverage: os.loadavg() },
@@ -106,21 +109,23 @@ export class PlatformMonitoringService {
         freeMb: Math.round(os.freemem() / 1024 / 1024),
         processRssMb: Math.round(mem.rss / 1024 / 1024),
       },
-      database: { connected: await this.pingDb() },
+      database: dbPing,
       docker: { detected: fsExists('/.dockerenv') },
-      websockets: { status: 'active' },
+      websockets: getSocketStats(),
       storage: { uploadsMb: uploadSizeMb, uploadsDir },
       modules: { enabledInstallations: moduleCount },
-      jobs: { backgroundJobs: 0 },
+      jobs: { backgroundJobs: 0, queue: 'sync' },
+      api: { topSlowEndpoints: performanceMetrics.getApiSummary(10) },
     };
   }
 
-  private async pingDb(): Promise<boolean> {
+  private async pingDb(): Promise<{ connected: boolean; latencyMs: number }> {
+    const start = performance.now();
     try {
       await prisma.$queryRaw`SELECT 1`;
-      return true;
+      return { connected: true, latencyMs: Math.round(performance.now() - start) };
     } catch {
-      return false;
+      return { connected: false, latencyMs: -1 };
     }
   }
 

@@ -17,6 +17,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          memory: 256M
 
   backend:
     image: ${GHCR_IMAGE_PREFIX:-ghcr.io/timux/festmanager}/backend:${IMAGE_TAG:-latest}
@@ -50,6 +57,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   frontend:
     image: ${GHCR_IMAGE_PREFIX:-ghcr.io/timux/festmanager}/frontend:${IMAGE_TAG:-latest}
@@ -66,6 +80,13 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          memory: 64M
 
 volumes:
   postgres_data:

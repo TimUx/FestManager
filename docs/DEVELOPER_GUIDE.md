@@ -513,6 +513,16 @@ Multi-Tenant-Härtung und OWASP-Review:
 
 → **[SECURITY.md](../SECURITY.md)** · **[ADR-029](./architecture/029-multi-tenant-security-hardening.md)**
 
+### Performance (Phase 9)
+
+Lasttests, DB-Indizes, Monitoring, Frontend Code Splitting:
+
+- `npm run qa:performance` — API-Baseline
+- `npm run qa:load` — k6 Lasttests
+- `performanceMetrics` + erweiterter Health-Check
+
+→ **[PERFORMANCE_GUIDE.md](./PERFORMANCE_GUIDE.md)** · **[ADR-030](./architecture/030-performance-scalability.md)**
+
 ### Payment & PayableResource
 
 Das Payment-Modul arbeitet ausschließlich mit `PayableResource` – es kennt keine Bestellungen. Der Core registriert Bestellungen als zahlbare Ressource:

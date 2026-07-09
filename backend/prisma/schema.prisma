@@ -273,7 +273,10 @@ model Order {
   @@index([tenantId, eventId])
   @@index([tenantId, createdAt])
   @@index([eventId, status])
-  @@index([eventId, orderDate])
+  @@index([tenantId, eventId, status])
+  @@index([tenantId, updatedAt])
+  @@index([eventId, status, readyAt])
+  @@index([tenantId, lookupToken])
 }
 
 model OrderItem {
@@ -285,6 +288,8 @@ model OrderItem {
   quantity   Int
   unitPrice  Decimal  @db.Decimal(10, 2)
   lineTotal  Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
 }
 
 model OrderStatus {

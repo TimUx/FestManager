@@ -62,12 +62,34 @@ router.get('/health', async (req, res) => {
   } catch {
     resolverOk = false;
   }
-  const ok = tenantHealth.tenantContextReady && tenantHealth.defaultTenantAvailable && resolverOk;
+
+  const { prisma } = await import('../config/database');
+  const dbStart = performance.now();
+  let dbLatencyMs = -1;
+  let dbOk = false;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbLatencyMs = Math.round(performance.now() - dbStart);
+    dbOk = true;
+  } catch {
+    dbOk = false;
+  }
+
+  const { getSocketStats } = await import('../socket');
+  const { performanceMetrics } = await import('../platform/metrics/performanceMetrics');
+
+  const ok = tenantHealth.tenantContextReady && tenantHealth.defaultTenantAvailable && resolverOk && dbOk;
   res.json({
     status: ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     tenant: tenantHealth,
     resolver: { ok: resolverOk },
+    database: { ok: dbOk, latencyMs: dbLatencyMs },
+    websockets: getSocketStats(),
+    performance: {
+      slowApiThresholdMs: Number(process.env.SLOW_API_MS ?? 500),
+      topEndpoints: performanceMetrics.getApiSummary(5),
+    },
   });
 });
 router.get('/openapi.json', (_req, res) => {

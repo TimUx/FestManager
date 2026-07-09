@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 import type { AuthPayload } from '../middleware/auth';
 import { eventRepository, orderRepository } from '../repositories';
 import { tenantContext, tenantResolver } from '../platform/bootstrap';
+import { performanceMetrics } from '../platform/metrics/performanceMetrics';
 import type { TenantContextData } from '../platform/tenant/types';
 
 let io: Server | null = null;
@@ -116,6 +117,7 @@ export function initSocket(httpServer: HttpServer): Server {
     logger.info(`Socket verbunden: ${socket.id}${data.user ? ` (${data.user.role})` : ''}`, {
       tenant_id: tenant.id,
     });
+    performanceMetrics.recordSocketConnect();
 
     socket.on('join:event', (eventId: string, callback?: (err?: string) => void) => {
       void runWithTenant(tenant, async () => {
@@ -177,6 +179,7 @@ export function initSocket(httpServer: HttpServer): Server {
     });
 
     socket.on('disconnect', () => {
+      performanceMetrics.recordSocketDisconnect();
       logger.info(`Socket getrennt: ${socket.id}`, { tenant_id: tenant.id });
     });
   });
@@ -228,6 +231,10 @@ export function emitClubUpdate(club: unknown): void {
   if (!io) return;
   const tenantId = requireTenantRoomPrefix();
   io.to(scopedRoom(tenantId, 'broadcast')).emit('club:updated', club);
+}
+
+export function getSocketStats(): { active: number; peak: number } {
+  return performanceMetrics.getSocketStats();
 }
 
 export function emitPrintJob(eventId: string, job: unknown): void {
