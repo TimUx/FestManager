@@ -96,10 +96,25 @@ export class ModuleScenarioRunner {
     }
 
     for (const moduleId of activeIds) {
-      const row = await this.moduleRegistry.getDbRow(moduleId);
-      if (!row?.enabled) {
-        await this.moduleManager.activateModule(moduleId);
+      await this.activateWithDependencies(moduleId);
+    }
+  }
+
+  private async activateWithDependencies(moduleId: string): Promise<void> {
+    const manifest = this.moduleRegistry.getManifest(moduleId);
+    if (!manifest) return;
+
+    for (const depId of manifest.dependencies.required) {
+      const depRow = await this.moduleRegistry.getDbRow(depId);
+      if (!depRow?.installed) {
+        await this.moduleManager.installModule(depId);
       }
+      await this.activateWithDependencies(depId);
+    }
+
+    const row = await this.moduleRegistry.getDbRow(moduleId);
+    if (!row?.enabled) {
+      await this.moduleManager.activateModule(moduleId);
     }
   }
 
