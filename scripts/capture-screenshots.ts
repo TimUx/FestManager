@@ -326,6 +326,69 @@ const mockNotificationsSettingsForm = {
   ],
 };
 
+const mockClubSettingsForm = {
+  namespace: 'core.club',
+  label: 'Verein',
+  description: 'Öffentliche Vereinsdaten und Branding',
+  adminPath: '/admin/verein',
+  groups: [
+    {
+      id: 'general', label: 'Allgemein', description: 'Name und Beschreibung', fields: [
+        { key: 'clubName', group: 'general', label: 'Vereinsname', type: 'string', value: mockClub.clubName, required: true },
+        { key: 'description', group: 'general', label: 'Beschreibung', type: 'text', value: mockClub.description },
+      ],
+    },
+    {
+      id: 'contact', label: 'Kontakt', description: 'Kontaktdaten für die öffentliche Seite', fields: [
+        { key: 'contactName', group: 'contact', label: 'Ansprechpartner', type: 'string', value: mockClub.contactName },
+        { key: 'email', group: 'contact', label: 'E-Mail', type: 'email', value: mockClub.email },
+        { key: 'phone', group: 'contact', label: 'Telefon', type: 'string', value: mockClub.phone },
+        { key: 'address', group: 'contact', label: 'Adresse', type: 'text', value: mockClub.address },
+      ],
+    },
+    {
+      id: 'branding', label: 'Branding', description: 'Logo und Website', fields: [
+        { key: 'website', group: 'branding', label: 'Website', type: 'url', value: mockClub.website },
+        { key: 'logoUrl', group: 'branding', label: 'Logo-URL', type: 'url', value: mockClub.logoUrl ?? '' },
+      ],
+    },
+  ],
+};
+
+const mockOrderSettingsForm = {
+  namespace: 'core.order',
+  label: 'Bestellung',
+  description: 'Pflichtfelder und Stornierungsfrist für Online-Bestellungen',
+  adminPath: '/admin/bestellung',
+  groups: [
+    {
+      id: 'fields', label: 'Pflichtfelder', description: 'Welche Kundendaten abgefragt werden', fields: [
+        { key: 'orderFieldFirstNameRequired', group: 'fields', label: 'Vorname Pflichtfeld', type: 'boolean', value: mockClub.orderFieldFirstNameRequired },
+        { key: 'orderFieldLastNameRequired', group: 'fields', label: 'Nachname Pflichtfeld', type: 'boolean', value: mockClub.orderFieldLastNameRequired },
+        { key: 'orderFieldEmailRequired', group: 'fields', label: 'E-Mail Pflichtfeld', type: 'boolean', value: mockClub.orderFieldEmailRequired },
+        { key: 'orderFieldPhoneRequired', group: 'fields', label: 'Telefon Pflichtfeld', type: 'boolean', value: mockClub.orderFieldPhoneRequired },
+      ],
+    },
+    {
+      id: 'cancellation', label: 'Stornierung', description: 'Frist für Kundenstornierung', fields: [
+        { key: 'cancellationDeadlineHours', group: 'cancellation', label: 'Stornierungsfrist (Stunden vor Veranstaltung)', type: 'number', value: mockClub.cancellationDeadlineHours },
+      ],
+    },
+  ],
+};
+
+const mockAdminPages = [
+  { id: 'admin-dashboard', path: '/admin', label: 'Übersicht', description: 'Administrationsübersicht', icon: 'Dashboard', pageType: 'dashboard', sortOrder: 0, source: 'core' as const },
+  { id: 'settings-core-club', path: '/admin/verein', label: 'Verein', description: 'Öffentliche Vereinsdaten und Branding', icon: 'Settings', pageType: 'settings', namespace: 'core.club', sortOrder: 15, source: 'core' as const },
+  { id: 'payment-admin', path: '/admin/payment', label: 'Online-Zahlung', description: 'Zahlungsanbieter, Transaktionen und Statistiken', icon: 'Payment', pageType: 'report', componentId: 'payment.admin', sortOrder: 10, source: 'module' as const, moduleId: 'payment', requiredPermission: 'payment.view' },
+  { id: 'core-users', path: '/admin/benutzer', label: 'Benutzer', description: 'Mitarbeiter und Administratoren', icon: 'People', pageType: 'builtin', componentId: 'core.users', sortOrder: 30, source: 'core' as const },
+  { id: 'core-events', path: '/admin/veranstaltungen', label: 'Veranstaltungen', description: 'Events anlegen und aktivieren', icon: 'Event', pageType: 'builtin', componentId: 'core.events', sortOrder: 40, source: 'core' as const },
+  { id: 'core-food-items', path: '/admin/speisen', label: 'Speisen', description: 'Speisekarte pflegen', icon: 'RestaurantMenu', pageType: 'builtin', componentId: 'core.food-items', sortOrder: 50, source: 'core' as const },
+  { id: 'settings-core-order', path: '/admin/bestellung', label: 'Bestellung', description: 'Pflichtfelder und Stornierungsfrist', icon: 'ShoppingCart', pageType: 'settings', namespace: 'core.order', sortOrder: 55, source: 'core' as const },
+  { id: 'core-modules', path: '/admin/module', label: 'Module', description: 'Offizielle Erweiterungen verwalten', icon: 'Extension', pageType: 'modules', componentId: 'core.modules', sortOrder: 90, source: 'core' as const },
+  { id: 'settings-module.notifications', path: '/admin/settings/module.notifications', label: 'Benachrichtigungen', description: 'E-Mail, Push und ntfy', icon: 'Notifications', pageType: 'settings', namespace: 'module.notifications', sortOrder: 200, source: 'module' as const, moduleId: 'notifications' },
+];
+
 const mockAdminUi = {
   navigation: [
     { id: 'admin-dashboard', label: 'Übersicht', path: '/admin', icon: 'Dashboard', sortOrder: 0, source: 'core' },
@@ -337,18 +400,30 @@ const mockAdminUi = {
     { id: 'core-modules', label: 'Module', path: '/admin/module', icon: 'Extension', sortOrder: 90, source: 'core' },
     ...mockModuleMenu.map((m) => ({ ...m, source: 'module' as const, moduleId: m.id.includes('payment') ? 'payment' : 'notifications' })),
   ],
-  pages: [
-    { id: 'admin-dashboard', path: '/admin', label: 'Übersicht', pageType: 'dashboard', sortOrder: 0, source: 'core' },
-    { id: 'core-users', path: '/admin/benutzer', label: 'Benutzer', pageType: 'builtin', componentId: 'core.users', sortOrder: 30, source: 'core' },
-    { id: 'core-events', path: '/admin/veranstaltungen', label: 'Veranstaltungen', pageType: 'builtin', componentId: 'core.events', sortOrder: 40, source: 'core' },
-    { id: 'core-food-items', path: '/admin/speisen', label: 'Speisen', pageType: 'builtin', componentId: 'core.food-items', sortOrder: 50, source: 'core' },
-    { id: 'core-modules', path: '/admin/module', label: 'Module', pageType: 'modules', componentId: 'core.modules', sortOrder: 90, source: 'core' },
-    { id: 'settings-core-club', path: '/admin/verein', label: 'Verein', pageType: 'settings', namespace: 'core.club', sortOrder: 15, source: 'core' },
-    { id: 'settings-core-order', path: '/admin/bestellung', label: 'Bestellung', pageType: 'settings', namespace: 'core.order', sortOrder: 55, source: 'core' },
-    { id: 'payment-admin', path: '/admin/payment', label: 'Online-Zahlung', pageType: 'report', componentId: 'payment.admin', sortOrder: 10, source: 'module', moduleId: 'payment', requiredPermission: 'payment.view' },
-    { id: 'settings-module.notifications', path: '/admin/settings/module.notifications', label: 'Benachrichtigungen', pageType: 'settings', namespace: 'module.notifications', sortOrder: 200, source: 'module', moduleId: 'notifications' },
+  pages: mockAdminPages,
+  dashboardTiles: [
+    ...mockAdminPages
+      .filter((p) => p.pageType !== 'dashboard')
+      .map((p) => ({
+        id: p.id,
+        label: p.label,
+        description: p.description,
+        path: p.path,
+        icon: p.icon,
+        sortOrder: p.sortOrder,
+        source: p.source,
+        moduleId: 'moduleId' in p ? p.moduleId : undefined,
+      })),
+    {
+      id: 'staff-area',
+      label: 'Mitarbeiterbereich',
+      description: 'Küche, Abholung, Bestellungen',
+      path: '/mitarbeiter',
+      icon: 'Storefront',
+      sortOrder: 1000,
+      source: 'core' as const,
+    },
   ],
-  dashboardTiles: [],
   widgets: [{ id: 'payment-status', title: 'Online-Zahlung', componentId: 'payment.status', sortOrder: 10, moduleId: 'payment' }],
   health: [{ id: 'payment-providers', moduleId: 'payment', label: 'Zahlungsanbieter', status: 'healthy' }],
   reports: [{ id: 'payment-admin', path: '/admin/payment', label: 'Online-Zahlung', componentId: 'payment.admin', moduleId: 'payment' }],
@@ -366,6 +441,16 @@ function mockApi(pathname: string, method: string, body?: string): unknown {
   if (pathname === '/api/admin/email-settings') return mockEmailSettings;
   if (pathname === '/api/public/club' || pathname === '/api/staff/club' || pathname === '/api/admin/club') return mockClub;
   if (pathname === '/api/admin/ui') return mockAdminUi;
+  if (pathname === '/api/admin/settings/core.club/schema') return mockClubSettingsForm;
+  if (pathname === '/api/admin/settings/core.club') return mockClub;
+  if (pathname === '/api/admin/settings/core.order/schema') return mockOrderSettingsForm;
+  if (pathname === '/api/admin/settings/core.order') return {
+    orderFieldFirstNameRequired: mockClub.orderFieldFirstNameRequired,
+    orderFieldLastNameRequired: mockClub.orderFieldLastNameRequired,
+    orderFieldEmailRequired: mockClub.orderFieldEmailRequired,
+    orderFieldPhoneRequired: mockClub.orderFieldPhoneRequired,
+    cancellationDeadlineHours: mockClub.cancellationDeadlineHours,
+  };
   if (pathname === '/api/admin/settings/module.payment/schema') return mockPaymentSettingsForm;
   if (pathname === '/api/admin/settings/module.payment') return mockPaymentConfig;
   if (pathname === '/api/admin/settings/module.notifications/schema') return mockNotificationsSettingsForm;
@@ -393,6 +478,9 @@ function mockApi(pathname: string, method: string, body?: string): unknown {
       { id: mockOrders[2].id, orderNumber: 43, displayNumber: '043', readyAt: '2026-07-08T11:00:00.000Z' },
       { id: '00000000-0000-0000-0000-000000000045', orderNumber: 45, displayNumber: '045', readyAt: '2026-07-08T11:05:00.000Z' },
       { id: '00000000-0000-0000-0000-000000000046', orderNumber: 46, displayNumber: '046', readyAt: '2026-07-08T11:08:00.000Z' },
+      { id: '00000000-0000-0000-0000-000000000047', orderNumber: 47, displayNumber: '047', readyAt: '2026-07-08T11:10:00.000Z' },
+      { id: '00000000-0000-0000-0000-000000000048', orderNumber: 48, displayNumber: '048', readyAt: '2026-07-08T11:12:00.000Z' },
+      { id: '00000000-0000-0000-0000-000000000049', orderNumber: 49, displayNumber: '049', readyAt: '2026-07-08T11:15:00.000Z' },
     ];
   }
   if (pathname === '/api/public/orders/lookup' && method === 'POST') {
@@ -411,6 +499,16 @@ function mockApi(pathname: string, method: string, body?: string): unknown {
   }
   if (pathname.match(/\/staff\/events\/[^/]+\/orders$/) && method === 'GET') return mockOrders;
   if (pathname === '/api/admin/users' && method === 'GET') return mockUsers;
+  if (pathname === '/api/admin/permissions') {
+    return {
+      available: [
+        { key: 'orders.view', description: 'Bestellungen einsehen' },
+        { key: 'orders.manage', description: 'Bestellungen bearbeiten' },
+        { key: 'payment.view', description: 'Zahlungsübersicht einsehen' },
+      ],
+      staff: ['orders.view', 'orders.manage'],
+    };
+  }
   if (pathname === '/api/admin/modules' && method === 'GET') return mockModules;
   if (pathname === '/api/public/modules/menu') return mockModuleMenu;
   if (pathname === '/api/public/payment/status') return { available: true };
@@ -446,10 +544,17 @@ function startStaticServer(): Promise<void> {
 
 async function setupPage(page: Page, auth = false) {
   await page.route('**/socket.io/**', (route) => route.abort());
+  await page.route('**/sw.js', (route) => route.abort());
+  await page.route('**/workbox-*.js', (route) => route.abort());
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     const body = mockApi(url.pathname, route.request().method(), route.request().postData() || undefined);
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.addInitScript(() => {
+    void navigator.serviceWorker?.getRegistrations().then((regs) => {
+      regs.forEach((reg) => void reg.unregister());
+    });
   });
   if (auth) {
     await page.addInitScript(() => {
@@ -501,6 +606,48 @@ function embedDevice(rawPath: string, device: 'iphone' | 'ipad' | 'monitor', out
   ], { stdio: 'inherit' });
 }
 
+async function waitForPageReady(page: Page, spec: PageSpec) {
+  if (!spec.auth) return;
+
+  if (spec.url.startsWith('/mitarbeiter')) {
+    await page.waitForURL(/\/mitarbeiter/, { timeout: 20000 });
+    await page.waitForFunction(() => document.body.innerText.trim().length > 80, { timeout: 20000 });
+    return;
+  }
+
+  if (!spec.url.startsWith('/admin')) return;
+
+  await page.waitForURL(/\/admin/, { timeout: 30000 });
+  await page.waitForSelector('.MuiDrawer-paper', { state: 'visible', timeout: 30000 });
+
+  if (spec.url.startsWith('/admin/payment')) {
+    await page.waitForSelector('text=Online-Zahlung', { timeout: 20000 });
+    if (spec.url.includes('tab=settings')) {
+      await page.waitForSelector('text=Einstellungen speichern', { timeout: 20000 });
+    } else {
+      await page.waitForSelector('text=Zahlungen heute', { timeout: 20000 });
+    }
+    return;
+  }
+
+  if (spec.url === '/admin/verein') {
+    await page.waitForSelector('text=Vereinsname', { timeout: 20000 });
+    return;
+  }
+
+  if (spec.url === '/admin/bestellung') {
+    await page.waitForSelector('text=Stornierungsfrist', { timeout: 20000 });
+    return;
+  }
+
+  if (spec.url === '/admin') {
+    await page.waitForSelector('text=Modul-Gesundheit', { timeout: 20000 });
+    return;
+  }
+
+  await page.waitForFunction(() => document.body.innerText.trim().length > 120, { timeout: 20000 });
+}
+
 async function captureScreenshot(
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   spec: PageSpec,
@@ -510,8 +657,9 @@ async function captureScreenshot(
   const page = await context.newPage();
   await setupPage(page, spec.auth);
 
-  await page.goto(`http://localhost:${PORT}${spec.url}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  await page.goto(`http://localhost:${PORT}${spec.url}`, { waitUntil: 'load' });
+  if (spec.auth) await waitForPageReady(page, spec);
+  await page.waitForTimeout(600);
   if (spec.prepare) await spec.prepare(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(400);
@@ -605,8 +753,9 @@ async function main() {
       auth: true,
       prepare: async (page) => {
         await page.getByLabel('Abholnummer').fill('43');
-        await page.locator('button').filter({ has: page.locator('svg') }).last().click();
-        await page.waitForTimeout(500);
+        await page.getByLabel('Nachname').fill('Mustermann');
+        await page.getByRole('button', { name: 'Suchen' }).click();
+        await page.waitForSelector('text=Schnitzel mit Pommes', { timeout: 10000 });
       },
     },
     {
@@ -637,7 +786,7 @@ async function main() {
     await captureScreenshot(browser, spec);
   }
 
-  const oldNames = ['08-kassenansicht.png', '09-lokale-kasse.png', '21-payment-einstellungen.png'];
+  const oldNames = ['08-kassenansicht.png', '09-lokale-kasse.png'];
   for (const old of oldNames) {
     try {
       unlinkSync(join(OUT_DIR, old));
