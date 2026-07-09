@@ -1,7 +1,11 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import request from 'supertest';
+import supertest from 'supertest';
+
+const request = typeof supertest === 'function'
+  ? supertest
+  : (supertest as unknown as { default: typeof supertest }).default;
 import type { Express } from 'express';
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../backend');
