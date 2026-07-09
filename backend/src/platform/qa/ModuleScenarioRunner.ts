@@ -81,12 +81,7 @@ export class ModuleScenarioRunner {
   private async applyScenario(activeIds: string[]): Promise<void> {
     const moduleIds = this.qaRegistry.scenarioModuleIds();
 
-    for (const moduleId of moduleIds) {
-      const row = await this.moduleRegistry.getDbRow(moduleId);
-      if (row?.enabled) {
-        await this.moduleManager.deactivateModule(moduleId);
-      }
-    }
+    await this.deactivateAllScenarioModules(moduleIds);
 
     for (const moduleId of moduleIds) {
       const row = await this.moduleRegistry.getDbRow(moduleId);
@@ -97,6 +92,23 @@ export class ModuleScenarioRunner {
 
     for (const moduleId of activeIds) {
       await this.activateWithDependencies(moduleId);
+    }
+  }
+
+  private async deactivateAllScenarioModules(moduleIds: string[]): Promise<void> {
+    let progress = true;
+    while (progress) {
+      progress = false;
+      for (const moduleId of moduleIds) {
+        const row = await this.moduleRegistry.getDbRow(moduleId);
+        if (!row?.enabled) continue;
+        try {
+          await this.moduleManager.deactivateModule(moduleId);
+          progress = true;
+        } catch {
+          // Abhängiges Modul noch aktiv – in nächster Runde erneut versuchen
+        }
+      }
     }
   }
 
