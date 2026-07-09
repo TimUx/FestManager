@@ -2,46 +2,47 @@
 
 Überblick: Was **heute stabil** ist und was **geplant** ist. Keine versteckten Experimente in der Hauptoberfläche.
 
-Stand: Release **1.0**
+Stand: Release **1.4.0**
 
 ---
 
-## Stabil (1.0)
+## Stabil (1.4.0)
 
 | Bereich | Funktion |
 |---------|----------|
-| Öffentlich | Bestellseite, Vorausbestellung, Status, Kontakt, Abholboard |
+| Öffentlich | Bestellseite, Vorausbestellung, Status (per Lookup-Token), Kontakt, Abholboard, veröffentlichte Rechtsseiten (Impressum, Datenschutz, AGB, Widerruf) |
 | Mitarbeiter | Küche, Abholung, Kasse, Dashboard, Bestellübersicht |
-| Admin | Verein, Veranstaltungen, Speisen, Benutzer, Bestell-Einstellungen |
-| Betrieb | Docker Compose, Prisma-Migrationen, Backup & Restore-Skripte |
-| Module (optional) | Online-Zahlung (Stripe), Benachrichtigungen (E-Mail, ntfy, Chat) |
+| Admin | Verein, Veranstaltungen, Speisen, Team, Bestell-Einstellungen, **Funktionen** (optionale Features ein/aus) |
+| Einrichtung | Geführter **Einrichtungsassistent** (`/admin/einrichtung`: Verein → Veranstaltung → Speisekarte → Zahlungsart → Mitarbeiter) |
+| Zahlung (UX) | **Zahlungs-Presets** (nur Bar / Bar+Karte / Online) im Assistenten und Payment-Admin |
+| Team | **Rollen-Presets** (Vorstand, Küche, Kasse, Abholung, …) in der Benutzerverwaltung |
+| Sicherheit | Bestellstatus nur mit Lookup-Token; Session-Widerruf bei Logout und deaktivierten Nutzern; Bild-Upload über Sharp (Typ, Größe, Neuencodierung) |
+| Betrieb | Docker Compose, Schema-Sync per `prisma db push`, Backup- & Restore-Skripte |
+| Module (optional) | Online-Zahlung (Stripe), Benachrichtigungen (E-Mail, ntfy, Chat), Bondruck, Rechtliche Informationen |
+| API | Routen unter `/api/v1` (parallel zu `/api`) |
 | Qualität | CI (Lint, Tests, E2E), Nightly QA, Security-Audit |
+
+Vorschau-Module (Lager, Gutscheine, Analytics, …) sind im Code vorhanden, werden in der Admin-Oberfläche aber **nicht** angezeigt (`productionReady`-Filter).
 
 ---
 
-## Geplant (nach 1.0)
+## Geplant
 
 | Thema | Beschreibung | Priorität |
 |-------|--------------|-----------|
-| Einrichtungsassistent | Geführter Setup nach erstem Login (Event → Karte → Zahlung) | Hoch |
-| „Funktionen“ statt Modul-Jargon | Vereinfachte Admin-Oberfläche für optionale Features | Hoch |
-| Zahlungs-Presets | Nur Bar / Bar+Karte / Online — ohne Provider-Details im Alltag | Hoch |
-| Status-Privacy | Bestellstatus nur mit Lookup-Token, nicht erratbar | Hoch |
-| Session-Widerruf | Logout und deaktivierte Nutzer sofort wirksam | Mittel |
-| Upload-Härtung | Striktere Bild-Pipeline für Logos | Mittel |
-| Lagerverwaltung | Bestand pro Gericht | Mittel |
-| Küchendruck | Bondrucker-Anbindung | Mittel |
-| Rollen-Presets | Küche, Kasse, Vorstand — ohne Rechte-Bingo | Mittel |
-| API v1 | Versionierte öffentliche API für Integrationen | Niedrig |
-| Multi-Instanz / Redis | Nur bei nachgewiesenem Bedarf | Niedrig |
+| Lagerverwaltung | Bestand pro Gericht — Modul `inventory` produktionsreif machen | Mittel |
+| Weitere Module | Check-in, Gutscheine, Rabatte, Analytics nach Community-Bedarf | Niedrig |
+| API-Integrationen | Öffentliche API dokumentieren, Stabilitätsversprechen für `/api/v1` | Niedrig |
+| Admin-Navigation | Sekundäre Menüs weiter straffen, „Erweitert“-Bereich für Power-User | Niedrig |
+| Multi-Instanz / Redis | Horizontale Skalierung (z. B. Socket.IO-Adapter) — nur bei nachgewiesenem Bedarf | Niedrig |
 
 ---
 
-## Bewusst nicht in 1.0
+## Bewusst nicht (Kernprodukt)
 
 - Drittanbieter-Plugin-Marketplace
 - Multi-Mandanten-SaaS
-- Vollständiges ERP (Lager, Loyalty, Analytics in der Haupt-UI)
+- Vollständiges ERP (Lager, Loyalty, Analytics in der Haupt-UI ohne klaren Vereins-Use-Case)
 
 Details und Begründung: [Maßnahmenplan](audits/massnahmenplan-architektur-produkt.md).
 
@@ -52,7 +53,7 @@ Details und Begründung: [Maßnahmenplan](audits/massnahmenplan-architektur-prod
 | Version | Fokus |
 |---------|--------|
 | **1.0** | Produktionsreifer Kern für Vereinsfeste |
-| 1.1+ | UX-Vereinfachung (Assistent, Presets) |
-| 1.2+ | Erweiterte Module nach Bedarf der Community |
+| **1.4.0** | Rechtliche Informationen, UX-Vereinfachung (Funktionen, Presets, Assistent, Rollen-Presets), sichere Status-URLs & Sessions |
+| 1.5+ | Lagerverwaltung und weitere Module nach Bedarf der Community |
 
-Release-Notizen-Vorlage: [RELEASE_NOTES_TEMPLATE.md](RELEASE_NOTES_TEMPLATE.md)
+Release-Notizen: [CHANGELOG.md](../CHANGELOG.md) · Vorlage: [RELEASE_NOTES_TEMPLATE.md](RELEASE_NOTES_TEMPLATE.md)

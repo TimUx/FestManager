@@ -1,5 +1,8 @@
 # Changelog
 
+Alle wesentlichen Aenderungen an **Vereinsbestellung** werden hier dokumentiert.
+Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
+
 ## 1.4.0 - 2026-07-09
 
 ### Neu
@@ -20,3 +23,110 @@
 ### Dokumentation
 
 - README, Admin Guide, User Guide, Developer Guide und Architektur-ADRs fuer das Legal-Modul aktualisiert.
+
+---
+
+## 1.3.0 - 2026-07-08
+
+*Die 1.3-Reihe wurde bis **1.3.16** (2026-07-09) mit UX-, Sicherheits- und CI-Verbesserungen fortgefuehrt.*
+
+### Neu
+
+- **Plattformschicht:** SettingsService, Permission-System, AdminUiService, EventBus, HealthService, AuditService, ModuleMigrationService.
+- **Metadata-first Admin-UI:** dynamische Navigation und Seiten (`GET /api/admin/ui`), generische Settings-Formulare.
+- **Payment-Modul (produktionsreif):** Smart Payment (Bar/Online, QR, Live-Status), Payment-Admin unter `/admin/payment` (Dashboard, Provider, Zahlungsarten, Zahlungen, Refunds, Logs, Webhooks, Health, Statistiken).
+- **Notifications-Modul:** SMTP, ntfy, Discord, Slack, Microsoft Teams; Konfiguration unter `/admin/settings/module.notifications`.
+- **Printer-Modul:** Grundgeruest fuer Bondruck (Adapter, Hooks, PDF).
+- **Einrichtungsassistent** (`/admin/einrichtung`) fuer die Erstkonfiguration.
+- **Zahlungs-Presets** (nur Bar / Bar+Karte / Online) und **Rollen-Presets** in der Team-Verwaltung.
+- **RealtimeService** mit WebSocket und intelligentem Polling-Fallback.
+
+### Verbessert
+
+- Admin-Bereich vereinfacht: **Funktionen** statt Modul-Jargon; nur produktionsreife Module sichtbar (`productionReady`).
+- Stripe-Haertung: Webhook-Idempotenz, granulare Payment-Berechtigungen, POS-/Kassen-QR.
+- Mitarbeiter-Bestelluebersicht zeigt E-Mail und Telefon unter dem Kundennamen.
+- **Sicherheit:** Lookup-Token fuer oeffentlichen Bestellstatus; Session-Widerruf bei Logout und deaktivierten Nutzern; gehaertete Bild-Upload-Pipeline (Sharp).
+- Ausgehender Nachrichtenversand vollstaendig ueber das Benachrichtigungsmodul; zentrale E-Mail-Templates (`templates/de.ts`).
+- Umfangreiche **QA/CI-Pipeline** (GitHub Actions, Vitest, Playwright, Modul-Szenarien, Nightly, Release Validation).
+
+### Geaendert (Breaking)
+
+| Alt | Neu |
+|-----|-----|
+| `/admin/module/payment` | `/admin/payment` |
+| `/admin/email` | `/admin/settings/module.notifications` |
+| `PAYMENT_ENCRYPTION_KEY` | `APP_ENCRYPTION_KEY` |
+| Hardcodierte Settings-Seiten | Generische Settings |
+
+### Dokumentation
+
+- ADRs 001–011, Migrationsplan, Modul-Architektur-Handbuch, Operations- und Security-Doku.
+- Screenshots fuer Payment-Admin und Benachrichtigungen.
+
+---
+
+## 1.2.0 - 2026-07-08
+
+### Neu
+
+- **Modulsystem** mit vollstaendigem Lifecycle (installieren, aktivieren, deaktivieren, Health Check).
+- Admin-Oberflaeche **Modulverwaltung** (`/admin/module`); Module werden mit dem Docker-Image ausgeliefert.
+- **Payment-Modul** als erstes offizielles Modul: Stripe (Checkout, Webhooks, Refunds, Sandbox), PayableResource-Abstraktion, verschluesselte API-Schluessel.
+- Platzhalter-Anbieter: PayPal, VR Payment, S-Payment, PAYONE, SumUp.
+- Neun Stub-Module vorbereitet (u. a. Inventory, Printer, Voucher, Notifications).
+
+### Verbessert
+
+- Optionale Erweiterungen ohne Aenderungen am Core aktivierbar.
+
+### Dokumentation
+
+- Neues Modul-Architektur-Handbuch; Admin-, Developer- und User-Guide aktualisiert.
+- Screenshots: Modulverwaltung, Payment-Einstellungen.
+
+> **Hinweis:** Ohne aktiviertes Payment-Modul verhaelt sich die Plattform wie zuvor (Barzahlung an der Kasse).
+
+---
+
+## 1.1.0 - 2026-07-08
+
+### Neu
+
+- **Bestell-Einstellungen:** konfigurierbare Pflichtfelder (Vorname, Nachname, E-Mail, Telefon) und Stornierungsfrist in Stunden.
+- **Kunden-Stornierung** auf der Statusseite mit Nachnamen-Bestaetigung.
+- **E-Mail-Versand im Admin:** SMTP-Konfiguration unter `/admin/email`, optionaler Freitext in Bestell- und Stornierungsmails.
+
+### Verbessert
+
+- Bestaetigungs- und Stornierungsmails mit Vereinsdaten, Bestelldetails, rechtlichen Hinweisen und Status-Link.
+- Schema-Erweiterung in `ClubSettings` fuer Pflichtfelder, SMTP und Freitext.
+
+### Geaendert
+
+- SMTP-Einstellungen wandern von Umgebungsvariablen in den Admin-Bereich (einmalige Nachkonfiguration nach Update noetig).
+
+### Dokumentation
+
+- Guides und Screenshots aktualisiert.
+
+---
+
+## 1.0.0 - 2026-07-08
+
+Erste stabile Version der Vereinsbestellplattform.
+
+### Neu
+
+- **Oeffentlicher Bereich:** touch-optimierte Bestellseite, Vorausbestellungen, Kundenstatus per WebSocket, Kontaktseite, Abholboard, Bot-Schutz (Honeypot, Zeitpruefung, optional Turnstile).
+- **Mitarbeiterbereich:** Dashboard mit Live-Statistiken, Kuechenansicht, Abholung, Bestellung vor Ort, Bestelluebersicht.
+- **Administration:** Verein & Kontakt, Benutzerverwaltung, Veranstaltungs- und Speisenverwaltung mit Bild-Upload.
+- **Betrieb:** Docker Compose, PostgreSQL, PWA, automatischer Build der Images in `ghcr.io/timux/food-order/`.
+
+### Dokumentation
+
+- Admin-, User- und Developer-Guide; Schnellstart und Standard-Zugangsdaten nach Seed (`admin@verein.local`).
+
+### Stack
+
+React/TypeScript · MUI · Node/Express · Prisma · PostgreSQL · Socket.IO · Docker
