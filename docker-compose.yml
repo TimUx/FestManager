@@ -33,12 +33,23 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production-use-long-random-string}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      MULTI_TENANT_ENABLED: ${MULTI_TENANT_ENABLED:-false}
+      PLATFORM_BASE_DOMAIN: ${PLATFORM_BASE_DOMAIN:-festmanager.org}
+      DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-default}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
     ports:
       - "3001:3001"
     volumes:
       - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   frontend:
     image: ${GHCR_IMAGE_PREFIX:-ghcr.io/timux/festmanager}/frontend:${IMAGE_TAG:-latest}
@@ -46,9 +57,15 @@ services:
     restart: unless-stopped
     pull_policy: always
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

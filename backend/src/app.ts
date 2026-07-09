@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import path from 'path';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
+import { corsPolicy } from './middleware/corsPolicy';
+import { requestContextMiddleware } from './middleware/requestContext';
 import { config } from './config';
 import { moduleManager, createTenantMiddlewareStack, initializeTenantInfrastructure, tenantContext, tenantService } from './platform/bootstrap';
 import { registerCorePayables } from './core/payable/registerPayables';
@@ -11,10 +13,13 @@ import { migrateLegacySettingsSecrets } from './core/settings/migrateLegacySecre
 
 const app = express();
 
-app.set('trust proxy', config.multiTenant.trustedProxies.length);
+const trustProxy =
+  config.multiTenant.trustProxyHops > 0 ? config.multiTenant.trustProxyHops : false;
+app.set('trust proxy', trustProxy);
 
+app.use(requestContextMiddleware);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(cors(corsPolicy.corsOptions()));
 app.use(express.json({
   verify: (req, _res, buf) => {
     if (req.url?.includes('/webhooks/')) {

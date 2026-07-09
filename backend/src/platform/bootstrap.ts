@@ -49,6 +49,7 @@ import { createTenantController } from '../controllers/tenantController';
 import { PlatformDashboardService, PlatformMonitoringService } from './PlatformDashboardService';
 import { PlatformTenantAdminService } from './PlatformTenantAdminService';
 import { ImpersonationService } from './ImpersonationService';
+import { corsPolicy } from '../middleware/corsPolicy';
 
 export const platformContainer = new ServiceContainer();
 
@@ -224,6 +225,9 @@ export async function initializeTenantInfrastructure(): Promise<void> {
     platformData.allowedDomains = [...platformData.allowedDomains, 'localhost'];
   }
   platformContextInstance.initialize(platformData);
+
+  const networkSettings = await platformSettingsServiceInstance.getNamespace('platform.network');
+  corsPolicy.bindFromPlatform(platformData, networkSettings);
 
   const { ensureDefaultTenant } = await import('../core/tenant/ensureDefaultTenant');
   await ensureDefaultTenant();

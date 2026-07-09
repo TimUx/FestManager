@@ -52,7 +52,7 @@ Ab Version 2.0 arbeitet die Plattform mandantenfähig. Kernbausteine:
 - Alle Datenbankzugriffe mandantenbezogener Tabellen filtern über `tenant_id` aus `TenantContext`
 - UI-Begriff bleibt **Veranstalter**; intern **Mandant**
 
-ADRs: [020–027](architecture/README.md#version-20--multi-tenant) · Phase 1: [Report](architecture/PHASE_1_COMPLETION_REPORT.md) · Phase 2: [Report](architecture/PHASE_2_COMPLETION_REPORT.md) · Phase 3: [Report](architecture/PHASE_3_COMPLETION_REPORT.md) · Phase 4: [Report](architecture/PHASE_4_COMPLETION_REPORT.md) · Phase 5: [Report](architecture/PHASE_5_COMPLETION_REPORT.md) · [Frontend Guide](FRONTEND_GUIDE.md)
+ADRs: [020–027](architecture/README.md#version-20--multi-tenant) · Phase 1–6: [Reports](architecture/README.md#version-20--multi-tenant) · [Frontend Guide](FRONTEND_GUIDE.md) · [Deployment Guide](DEPLOYMENT.md) · [Docker Guide](DOCKER.md)
 
 ### Plattform-API (Phase 3)
 

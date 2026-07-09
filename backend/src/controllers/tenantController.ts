@@ -103,5 +103,20 @@ export function createTenantController(
         next(error);
       }
     },
+
+    async getPublicHealth(_req: unknown, res: Response, next: NextFunction) {
+      try {
+        const hasTenant = tenantContext.exists();
+        res.json({
+          status: 'ok',
+          scope: hasTenant ? 'tenant' : 'platform',
+          tenantId: tenantContext.id() ?? null,
+          tenantSlug: tenantContext.slug() ?? null,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
   };
 }

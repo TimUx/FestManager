@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
+import { corsPolicy } from '../middleware/corsPolicy';
 import { logger } from '../utils/logger';
 import type { AuthPayload } from '../middleware/auth';
 import { orderRepository } from '../repositories';
@@ -38,8 +39,9 @@ async function verifyOrderAccess(
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: config.corsOrigin,
+      origin: corsPolicy.socketOrigins(),
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 

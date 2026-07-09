@@ -25,5 +25,11 @@ export const config = {
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean),
+    trustProxyHops: parseInt(process.env.TRUSTED_PROXY_HOPS || '1', 10),
   },
+  redis: {
+    url: process.env.REDIS_URL || '',
+    enabled: Boolean(process.env.REDIS_URL),
+  },
+  logFormat: process.env.LOG_FORMAT || 'text',
 };

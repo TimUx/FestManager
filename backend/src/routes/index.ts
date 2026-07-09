@@ -51,13 +51,22 @@ const router = Router();
 router.use('/platform', platformRoutes);
 
 // Health & API-Dokumentation
-router.get('/health', async (_req, res) => {
+router.get('/health', async (req, res) => {
   const defaultTenantExists = await tenantService.exists({ slug: 'default' });
   const tenantHealth = await healthService.checkTenantInfrastructure(defaultTenantExists);
+  let resolverOk = true;
+  try {
+    const { tenantResolver } = await import('../platform/bootstrap');
+    await tenantResolver.resolve(req);
+  } catch {
+    resolverOk = false;
+  }
+  const ok = tenantHealth.tenantContextReady && tenantHealth.defaultTenantAvailable && resolverOk;
   res.json({
-    status: tenantHealth.tenantContextReady && tenantHealth.defaultTenantAvailable ? 'ok' : 'degraded',
+    status: ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     tenant: tenantHealth,
+    resolver: { ok: resolverOk },
   });
 });
 router.get('/openapi.json', (_req, res) => {
@@ -73,6 +82,7 @@ router.get('/auth/me', authenticate, loadUser, authController.me);
 
 // Public
 router.get('/public/routing-config', tenantController.getRoutingConfig);
+router.get('/public/health', tenantController.getPublicHealth);
 router.get('/public/tenant', tenantController.getPublic);
 router.get('/public/platform', tenantController.getPlatformPublic);
 router.get('/public/club', clubController.getPublic);
