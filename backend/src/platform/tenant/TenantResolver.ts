@@ -212,7 +212,12 @@ export class TenantResolver {
   }
 
   private buildCacheKey(host: string, path: string, prefixEnabled: boolean): string {
-    return prefixEnabled ? `${host}:${path.split('/').filter(Boolean)[0] ?? ''}` : host;
+    const firstSegment = path.split('/').filter(Boolean)[0] ?? '';
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    if (prefixEnabled || isLocalHost) {
+      return `${host}:${firstSegment}`;
+    }
+    return host;
   }
 
   private getFromCache(key: string): ResolveResult | null {
