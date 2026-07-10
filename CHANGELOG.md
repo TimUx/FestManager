@@ -3,6 +3,21 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.2.0 - 2026-07-10
+
+### Neu
+
+- **Interaktiver TUI-Installations-Assistent** (`./install.sh`): 13-stufiger Wizard mit dialog/gum, Systemanalyse, Docker-Erkennung, Reverse-Proxy-Erkennung, automatische `.env`- und Compose-Generierung.
+- **Rollback & Protokollierung:** Pre-Install-Backups, Fehlerbehandlung mit Retry/Rollback, Installationslogs unter `installer/logs/`.
+- **ADRs 034–038:** Interactive Installer, Installation Wizard, Environment Detection, Configuration Generation, Rollback Strategy.
+
+### Geändert
+
+- README und neue Installationsanleitung (`docs/INSTALLATION.md`) mit Schnellstart über `./install.sh`.
+- Version 2.2.0 in Backend, Frontend und Core.
+
+---
+
 ## 2.1.0 - 2026-07-10
 
 ### Neu

@@ -60,6 +60,9 @@ jobs:
           test -x scripts/backup/postgres-restore.sh
           grep -q 'CONFIRM=1' scripts/backup/postgres-restore.sh
 
+      - name: Installer unit tests
+        run: npm run qa:installer
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()

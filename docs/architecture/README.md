@@ -45,6 +45,11 @@ Technische Architektur der FestSchmiede-Plattform – Architecture Decision Reco
 | 031 | [central-mail-service.md](./031-central-mail-service.md) | Accepted (v2.1.0) | Zentraler MailService, Plattform-SMTP |
 | 032 | [initial-setup-wizard.md](./032-initial-setup-wizard.md) | Accepted (v2.1.0) | Mandanten-Einrichtungsassistent |
 | 033 | [passwordless-authentication.md](./033-passwordless-authentication.md) | Accepted (v2.1.0) | Magic Link, Login-Code, Auth-Modi |
+| 034 | [interactive-installer.md](./034-interactive-installer.md) | Accepted (v2.2.0) | TUI-Installations-Assistent |
+| 035 | [installation-wizard.md](./035-installation-wizard.md) | Accepted (v2.2.0) | 13-stufiger Installations-Wizard |
+| 036 | [environment-detection.md](./036-environment-detection.md) | Accepted (v2.2.0) | Automatische Infrastruktur-Erkennung |
+| 037 | [configuration-generation.md](./037-configuration-generation.md) | Accepted (v2.2.0) | .env & Compose-Generierung |
+| 038 | [rollback-strategy.md](./038-rollback-strategy.md) | Accepted (v2.2.0) | Installer Rollback & Logging |
 
 ### Version 2.0 – Multi-Tenant
 

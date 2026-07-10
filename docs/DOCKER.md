@@ -1,5 +1,15 @@
 # Docker Guide – FestSchmiede
 
+## Interaktiver Installer (v2.2.0)
+
+Der empfohlene Weg zur Installation ist der TUI-Assistent:
+
+```bash
+./install.sh
+```
+
+Der Installer erzeugt automatisch `.env`, `installer/generated/compose.override.yml` und startet die passenden Compose-Dateien. Siehe [INSTALLATION.md](./INSTALLATION.md).
+
 ## Compose-Dateien
 
 | Datei | Zweck |

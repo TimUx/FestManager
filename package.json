@@ -24,7 +24,8 @@
     "qa:docker:up": "docker compose -f docker-compose.ci.yml up -d --build",
     "qa:docker:down": "docker compose -f docker-compose.ci.yml down -v",
     "qa:docker:logs": "docker compose -f docker-compose.ci.yml logs",
-    "qa:wait": "bash scripts/qa/wait-for-services.sh"
+    "qa:wait": "bash scripts/qa/wait-for-services.sh",
+    "qa:installer": "bash installer/tests/run-tests.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",

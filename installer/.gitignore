@@ -1,0 +1,11 @@
+# Installationsprotokolle (lokal generiert)
+installer/logs/*.log
+
+# Installer-Laufzeitstatus
+.installer-state/
+
+# Generierte Konfiguration
+installer/generated/compose.override.yml
+
+# Credentials (lokal)
+.installer-state/credentials.txt

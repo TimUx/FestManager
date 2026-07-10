@@ -2,7 +2,7 @@
 
 Moderne Open-Source-Plattform für Verkauf, Bestellung und Organisation von Veranstaltungen – mit Vorausbestellungen, Branding des Veranstalters, Echtzeit-Updates und PWA-Unterstützung.
 
-> **Version 2.1.0** — Zentrale Mail-Konfiguration, Initial-Setup-Assistent und passwortlose Authentifizierung. Siehe [Release Notes 2.1.0](docs/release-notes-2.1.0.md).
+> **Version 2.2.0** — Professioneller interaktiver Installations-Assistent (`./install.sh`). Siehe [Installationsanleitung](docs/INSTALLATION.md).
 
 Ursprünglich für Vereine entwickelt, geeignet für Feuerwehren, Hilfsorganisationen, Sport- und Musikvereine, Schulen, Firmen, Kommunen, Foodtrucks und private Feste.
 
@@ -134,6 +134,18 @@ Technische Details: [Modul-Architektur](docs/MODULE_ARCHITECTURE.md) · Admin-An
 | ![Legal-Seiten](docs/screenshots/24-legal-seiten.png) | ![Impressum](docs/screenshots/25-impressum.png) |
 
 ## Schnellstart
+
+### Interaktiver Installer (empfohlen)
+
+```bash
+git clone https://github.com/TimUx/FestSchmiede.git
+cd FestSchmiede
+./install.sh
+```
+
+Der Assistent führt Sie durch Systemanalyse, Docker, Domain, Sicherheit und startet die Plattform automatisch. Details: [INSTALLATION.md](docs/INSTALLATION.md).
+
+### Manuell (Docker Compose)
 
 ```bash
 git clone https://github.com/TimUx/FestSchmiede.git
