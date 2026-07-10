@@ -5,7 +5,7 @@ function isProductionEnv(): boolean {
 }
 
 function isCiRuntime(): boolean {
-  return process.env.FESTSCHMIEDE_CI === '1' || process.env.CI === 'true';
+  return process.env.FESTSCHMIEDE_CI === '1';
 }
 
 function resolvePostgresPassword(): string {
