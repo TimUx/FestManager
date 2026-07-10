@@ -1,6 +1,6 @@
 import { settingsService } from '../../src/platform/bootstrap';
 import { CORE_EMAIL_NAMESPACE } from '../../src/platform/settings/SettingsNamespaces';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import { defaultNotificationConfig, type NotificationConfig } from './config';
 
 /** Migriert legacy `core.email` SMTP-Einstellungen in das Notifications-Modul. */

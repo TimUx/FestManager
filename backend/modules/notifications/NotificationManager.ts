@@ -1,4 +1,4 @@
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import type { ClubContactData, OrderEmailData } from '../../src/platform/extension-points/NotificationService';
 import { orderRepository } from '../../src/repositories';
 import { CORE_CLUB_NAMESPACE } from '../../src/platform/settings/SettingsNamespaces';

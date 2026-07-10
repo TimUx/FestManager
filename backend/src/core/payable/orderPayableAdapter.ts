@@ -4,7 +4,7 @@ import { emitOrderCreated } from '../../socket';
 import { clubService } from '../../services/clubService';
 import { hookSystem } from '../../platform/bootstrap';
 import { CORE_HOOKS } from '../../platform/types';
-import type { PayableResourceAdapter, PayableResource } from '../../module-system/extension-points';
+import type { PayableResourceAdapter, PayableResource } from '../../platform/module-api';
 
 export const ORDER_PAYABLE_TYPE = 'order';
 

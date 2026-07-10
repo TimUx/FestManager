@@ -1,5 +1,5 @@
-import { CORE_HOOKS } from '../../src/module-system/types';
-import type { FeatureContext, HookSubscription } from '../../src/module-system/types';
+import { CORE_HOOKS } from '../../src/platform/module-api';
+import type { FeatureContext, HookSubscription } from '../../src/platform/module-api';
 import { logger } from '../../src/utils/logger';
 import { notificationManager, type OrderHookPayload } from './NotificationManager';
 

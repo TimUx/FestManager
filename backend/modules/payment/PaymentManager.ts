@@ -1,4 +1,4 @@
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import type {
   PayableResource,
   PaymentCheckoutResult,
@@ -6,8 +6,8 @@ import type {
   PaymentStatusResult,
   RefundResult,
   WebhookVerificationResult,
-} from '../../src/module-system/extension-points';
-import { payableResourceRegistry } from '../../src/module-system/extension-points';
+} from '../../src/platform/module-api';
+import { payableResourceRegistry } from '../../src/platform/module-api';
 import type { PaymentProvider, PaymentResult } from './PaymentProvider';
 import { PAYMENT_FEATURES } from './PaymentProvider';
 import { PaymentFactory } from './PaymentFactory';

@@ -3,8 +3,8 @@ import {
   type FeatureContext,
   type ModuleHealthCheckResult,
   type ModuleRouteRegistration,
-} from '../../src/module-system/types';
-import { legalContentServiceRegistry } from '../../src/platform/extension-points';
+} from '../../src/platform/module-api';
+import { legalContentServiceRegistry } from '../../src/platform/module-api';
 import { defaultLegalConfig, legalConfigSchema } from './config';
 import { createLegalAdminRoutes } from './routes';
 import { createLegalContentService } from './services/LegalContentServiceImpl';

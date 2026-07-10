@@ -7,13 +7,24 @@
   "license": "MIT",
   "entry": "index",
   "dependencies": {
-    "required": ["payment"],
-    "optional": ["inventory"]
+    "required": [
+      "payment"
+    ],
+    "optional": [
+      "inventory"
+    ]
   },
   "permissions": [
-    { "key": "voucher.manage", "description": "Gutscheine verwalten" },
-    { "key": "voucher.redeem", "description": "Gutscheine einlösen" }
+    {
+      "key": "voucher.manage",
+      "description": "Gutscheine verwalten"
+    },
+    {
+      "key": "voucher.redeem",
+      "description": "Gutscheine einlösen"
+    }
   ],
   "minimumCoreVersion": "1.0.0",
-  "productionReady": false
+  "productionReady": false,
+  "preview": true
 }

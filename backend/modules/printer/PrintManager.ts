@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import type { OrderPrintPayload, PrintTemplate } from '../../src/platform/extension-points/PrinterService';
 import { CORE_CLUB_NAMESPACE } from '../../src/platform/settings/SettingsNamespaces';
 import { logger } from '../../src/utils/logger';

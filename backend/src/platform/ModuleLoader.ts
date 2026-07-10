@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 import { config } from '../config';
@@ -11,9 +12,23 @@ import type { ModuleManifest } from './manifest';
  * Modules are pre-built into the Docker image – no runtime installation.
  */
 export class ModuleLoader {
+  private resolveModuleRoot(manifest: ModuleManifest): string {
+    const inModules = path.join(config.modulesDir, manifest.id);
+    if (fs.existsSync(path.join(inModules, 'module.json'))) {
+      return config.modulesDir;
+    }
+    const inPlugins = path.join(config.pluginsDir, manifest.id);
+    if (fs.existsSync(path.join(inPlugins, 'module.json'))) {
+      return config.pluginsDir;
+    }
+    return config.modulesDir;
+  }
+
   private resolveEntryPath(manifest: ModuleManifest): string {
-    const base = path.join(config.modulesDir, manifest.id, manifest.entry);
-    const distBase = path.join(config.modulesDistDir, manifest.id, manifest.entry);
+    const root = this.resolveModuleRoot(manifest);
+    const distRoot = root === config.pluginsDir ? config.pluginsDir : config.modulesDistDir;
+    const base = path.join(root, manifest.id, manifest.entry);
+    const distBase = path.join(distRoot, manifest.id, manifest.entry);
 
     if (config.nodeEnv === 'production') {
       return distBase.endsWith('.js') ? distBase : `${distBase}.js`;

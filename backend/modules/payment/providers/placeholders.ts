@@ -1,5 +1,5 @@
-import type { FeatureContext } from '../../../src/module-system/types';
-import type { PayableResource } from '../../../src/module-system/extension-points';
+import type { FeatureContext } from '../../../src/platform/module-api';
+import type { PayableResource } from '../../../src/platform/module-api';
 import type { PaymentProvider, PaymentSession, PaymentResult, RefundResult, ProviderHealthResult } from '../PaymentProvider';
 import { PAYMENT_FEATURES } from '../PaymentProvider';
 import type { PaymentConfig } from '../config';

@@ -1,3 +1,9 @@
+/**
+ * @deprecated Since Module API v3 – use `platform/module-api` in modules and `platform` in core.
+ * This facade remains for backward-compatible imports only; no duplicate runtime logic.
+ */
+export * from '../platform/module-api';
+
 export {
   Registry,
   ServiceContainer,
@@ -17,59 +23,29 @@ export {
   ModuleLoader,
   DependencyResolver,
   ModuleManager,
-  BaseModule,
-  CORE_HOOKS,
-  compareVersions,
-  MODULE_STATUS_LABELS,
-  moduleManifestSchema,
-  CORE_VERSION,
-  payableResourceRegistry,
-  paymentServiceRegistry,
   bootstrapPlatform,
   platformContainer,
   moduleDiscovery,
   moduleLoader,
+  moduleRegistry,
+  moduleManager,
+  featureFlags,
+  featureContext,
+  dependencyResolver,
+  hookSystem,
 } from '../platform';
 
 export type {
-  Module,
   ModuleInfo,
   ModuleConfigContract,
-  ModuleWidget,
-  ModuleMenuItem,
-  ModulePermissionDefinition,
-  ModuleRouteRegistration,
-  ModuleHealthCheckResult,
-  ModuleFeatureFlags,
-  CoreHookName,
-  HookSubscription,
-  FeatureContext,
-  ModuleStatus,
-  ModuleManifest,
-  PayableResource,
-  PayableResourceAdapter,
-  PaymentService,
-  PaymentCheckoutResult,
-  ModuleManagerDeps,
-  ExtensionPointName,
   ResolvedModuleMetadata,
   AuditLogEntry,
+  ExtensionPointName,
+  ModuleManagerDeps,
 } from '../platform';
 
+/** @deprecated Use `HookSystem` from `platform`. */
 export { HookSystem as FeatureHooks } from '../platform/HookSystem';
 
-import {
-  hookSystemInstance,
-  featureFlagsInstance,
-  featureContextInstance,
-  moduleRegistryInstance,
-  moduleManagerInstance,
-  dependencyResolverInstance,
-} from '../platform/bootstrap';
-
-export const featureHooks = hookSystemInstance;
-export const featureFlags = featureFlagsInstance;
-export const featureContext = featureContextInstance;
-export const moduleRegistry = moduleRegistryInstance;
-export const moduleManager = moduleManagerInstance;
-export const dependencyResolver = dependencyResolverInstance;
+/** @deprecated Use `hookSystem` from `platform/bootstrap`. */
+export { hookSystem as featureHooks } from '../platform/bootstrap';

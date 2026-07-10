@@ -6,11 +6,21 @@
   "author": "FestSchmiede",
   "license": "MIT",
   "entry": "index",
-  "dependencies": { "required": [], "optional": [] },
+  "dependencies": {
+    "required": [],
+    "optional": []
+  },
   "permissions": [
-    { "key": "discount.manage", "description": "Rabatte verwalten" },
-    { "key": "discount.apply", "description": "Rabatte anwenden" }
+    {
+      "key": "discount.manage",
+      "description": "Rabatte verwalten"
+    },
+    {
+      "key": "discount.apply",
+      "description": "Rabatte anwenden"
+    }
   ],
   "minimumCoreVersion": "1.0.0",
-  "productionReady": false
+  "productionReady": false,
+  "preview": true
 }

@@ -1,5 +1,5 @@
 import type { PaymentProvider } from './PaymentProvider';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import type { PaymentConfig } from './config';
 
 class PaymentRegistryImpl {

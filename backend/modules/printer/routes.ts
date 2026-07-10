@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { printManager } from './PrintManager';
 import { PRINTER_SLOT_IDS, type PrinterSlotId } from './config';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 
 export function createPrinterAdminRoutes(context: FeatureContext): Router {
   const router = Router();

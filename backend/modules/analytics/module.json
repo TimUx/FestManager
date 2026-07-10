@@ -6,11 +6,23 @@
   "author": "FestSchmiede",
   "license": "MIT",
   "entry": "index",
-  "dependencies": { "required": [], "optional": ["inventory"] },
+  "dependencies": {
+    "required": [],
+    "optional": [
+      "inventory"
+    ]
+  },
   "permissions": [
-    { "key": "analytics.view", "description": "Auswertungen einsehen" },
-    { "key": "analytics.export", "description": "Berichte exportieren" }
+    {
+      "key": "analytics.view",
+      "description": "Auswertungen einsehen"
+    },
+    {
+      "key": "analytics.export",
+      "description": "Berichte exportieren"
+    }
   ],
   "minimumCoreVersion": "1.0.0",
-  "productionReady": false
+  "productionReady": false,
+  "preview": true
 }

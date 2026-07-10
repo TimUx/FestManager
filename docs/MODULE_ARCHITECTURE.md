@@ -1,17 +1,18 @@
 # Modul-Architektur – Entwicklerdokumentation
 
-Technische Dokumentation für das Feature-Modulsystem und die Modulverwaltung der FestSchmiede-Plattform.
+Technische Dokumentation für das Feature-Modulsystem der FestSchmiede-Plattform.
 
-> **Version 2.0:** Module müssen künftig ausschließlich über `TenantContext` arbeiten. Kein Hostname-Parsing, keine `tenant_id`-Requestparameter. Modul-Tabellen und `InstalledModule` werden mandantenscharf. Analyse der erforderlichen Änderungen: [ADR-020](architecture/020-multi-tenant-platform.md#modulanalyse-erforderliche-änderungen).
+> **Module API v3:** Kanonische Runtime in `backend/src/platform/`. Modulentwickler importieren ausschließlich aus `platform/module-api.ts`. `backend/src/module-system/` ist eine **deprecated** Re-Export-Fassade ohne eigene Logik. Details: [ADR-041](architecture/041-module-api-v3.md).
 
 ## Inhaltsverzeichnis
 
 1. [Architekturprinzip](#architekturprinzip)
-2. [Docker & Modulauslieferung](#docker--modulauslieferung)
-3. [Verzeichnisstruktur](#verzeichnisstruktur)
-4. [Modulstatus](#modulstatus)
-5. [Modul-Lifecycle](#modul-lifecycle)
-6. [module.json Manifest](#modulejson-manifest)
+2. [Module API v3](#module-api-v3)
+3. [Docker & Modulauslieferung](#docker--modulauslieferung)
+4. [Verzeichnisstruktur](#verzeichnisstruktur)
+5. [Modulstatus & Preview](#modulstatus--preview)
+6. [Modul-Lifecycle](#modul-lifecycle)
+7. [module.json Manifest](#modulejson-manifest)
 7. [Datenbank](#datenbank)
 8. [ModuleManager](#modulemanager)
 9. [Abhängigkeiten](#abhängigkeiten)
@@ -36,6 +37,32 @@ Plugins kennen den Core.
 ```
 
 Der **Core** enthält ausschließlich Grundfunktionen. **Module** erweitern die Plattform über Extension Points (Hooks, Routes, Permissions, Menüs, Widgets).
+
+---
+
+## Module API v3
+
+```typescript
+import {
+  BaseModule,
+  CORE_HOOKS,
+  paymentServiceRegistry,
+  type FeatureContext,
+} from '../../src/platform/module-api';
+```
+
+| Import | Verwendung |
+|--------|------------|
+| `platform/module-api` | Offizielle & Preview-Module |
+| `platform` / `platform/bootstrap` | Core-Integration (App-Start) |
+| `module-system` | **Deprecated** – nur Legacy-Imports |
+
+Runtime-Komponenten (eine Implementierung, keine Duplikate):
+
+- `ModuleDiscovery` – scannt `modules/` und `plugins/`
+- `ModuleLoader` – lädt Modulinstanz
+- `ModuleRegistry` – In-Memory-Registry
+- `ModuleManager` – Lifecycle, Routes, Settings
 
 ---
 
@@ -72,44 +99,26 @@ FestSchmiede/
 │   │   ├── loyalty/          # Treueprogramm (Stub)
 │   │   ├── checkin/          # QR-Einlass (Stub)
 │   │   └── cash-register/    # Kassenanbindung (Stub)
-│   ├── plugins/              # Reserviert für Community-Plugins
+│   ├── plugins/              # Community-Plugins (optional, gleiches Manifest)
 │   └── src/
-│       ├── module-system/    # Framework
-│       │   ├── ModuleDiscovery.ts
-│       │   ├── ModuleLoader.ts
-│       │   ├── ModuleManager.ts
-│       │   ├── ModuleRegistry.ts
-│       │   ├── DependencyResolver.ts
-│       │   └── ...
-│       └── core/
+│       ├── platform/         # Kanonische Modul-Runtime + module-api.ts
+│       └── module-system/    # Deprecated Re-Export-Fassade (nur index.ts)
+│   └── core/
 └── plugins/                  # Repo-Root (Dokumentation/Zukunft)
 ```
 
 ---
 
-## Modulstatus
-
-```mermaid
-stateDiagram-v2
-    [*] --> AVAILABLE: Im Image vorhanden
-    AVAILABLE --> INSTALLED: install()
-    INSTALLED --> ACTIVATED: activate()
-    ACTIVATED --> DISABLED: deactivate()
-    DISABLED --> ACTIVATED: activate()
-    INSTALLED --> UNINSTALLED: uninstall()
-    DISABLED --> UNINSTALLED: uninstall()
-    UNINSTALLED --> INSTALLED: install()
-```
+## Modulstatus & Preview
 
 | Status | Bedeutung |
 |--------|-----------|
-| **AVAILABLE** | Modul im Docker-Image, nicht initialisiert |
-| **INSTALLED** | Migrationen & Default-Config angelegt, nicht aktiv |
-| **ACTIVATED** | Hooks, Routes, Menüs, Widgets registriert |
-| **DISABLED** | Installiert, aber keine Erweiterungen aktiv |
-| **UNINSTALLED** | Initialisierung entfernt, Code bleibt im Image |
+| `AVAILABLE` | Im Image, nicht installiert |
+| `INSTALLED` | Installiert, nicht aktiviert |
+| `ENABLED` | Aktiviert und routbar |
+| `DISABLED` | Deaktiviert (war mal aktiviert) |
 
-Nur **ACTIVATED** Module registrieren Ressourcen. Nicht aktivierte Module verbrauchen keine Hooks, Routes oder Menüs.
+**Preview-Module** (`preview: true` in `module.json`) sind Stub-Implementierungen. Sie erscheinen nur mit `SHOW_PREVIEW_MODULES=1` in Discovery und Admin.
 
 ---
 
@@ -412,7 +421,7 @@ interface PayableResource {
 **Adapter registrieren** (im Core oder einem anderen Modul):
 
 ```typescript
-import { payableResourceRegistry } from '../module-system/extension-points';
+import { payableResourceRegistry } from '../platform/module-api';
 
 payableResourceRegistry.register({
   type: 'order',

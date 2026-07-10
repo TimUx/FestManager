@@ -3,8 +3,8 @@ import {
   type FeatureContext,
   type ModuleHealthCheckResult,
   type ModuleRouteRegistration,
-} from '../../src/module-system/types';
-import { notificationServiceRegistry } from '../../src/module-system/extension-points';
+} from '../../src/platform/module-api';
+import { notificationServiceRegistry } from '../../src/platform/module-api';
 import { defaultNotificationConfig, notificationsConfigSchema } from './config';
 import { createNotificationHookSubscriptions } from './hooks';
 import { migrateLegacyEmailSettings } from './migrateLegacyEmail';

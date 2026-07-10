@@ -1,4 +1,4 @@
-import type { FeatureContext } from '../../../src/module-system/types';
+import type { FeatureContext } from '../../../src/platform/module-api';
 import { PaymentFactory } from '../PaymentFactory';
 import { paymentRegistry } from '../PaymentRegistry';
 import { paymentManager } from '../PaymentManager';

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction, type RequestHandler } from 'express';
 import { z } from 'zod';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import { requirePermission } from '../../src/middleware/permission';
 import { LEGAL_PAGE_TYPES, LEGAL_PERMISSIONS } from './config';
 import { legalPageService } from './services/LegalPageService';

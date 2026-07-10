@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction, RequestHandler } from 'express';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import { requirePermission } from '../../src/middleware/permission';
 import { createPaymentAdminService } from './services/PaymentAdminService';
 import { paymentManager } from './PaymentManager';

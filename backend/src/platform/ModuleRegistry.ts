@@ -5,6 +5,7 @@ import type { Module, ModuleInfo, ModuleMenuItem, ModulePermissionDefinition, Mo
 import { compareVersions } from './types';
 import type { FeatureFlags } from './FeatureFlags';
 import type { ModuleManifest, ModuleStatus } from './manifest';
+import { isPreviewModule } from './manifest';
 import type { MetadataRegistry } from './MetadataRegistry';
 import type { DependencyResolver } from './DependencyResolver';
 
@@ -103,7 +104,7 @@ export class ModuleRegistry {
 
     const showPreview = process.env.SHOW_PREVIEW_MODULES === '1';
     const manifests = this.getAllManifests().filter(
-      (manifest) => showPreview || manifest.productionReady
+      (manifest) => showPreview || !isPreviewModule(manifest)
     );
 
     return Promise.all(

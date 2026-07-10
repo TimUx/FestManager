@@ -120,10 +120,28 @@ export const moduleManifestSchema = z.object({
   settings: settingsMetadataSchema.optional(),
   qa: qaMetadataSchema,
   minimumCoreVersion: z.string().default('1.0.0'),
+  /** Stable modules are visible in admin; preview modules require SHOW_PREVIEW_MODULES=1 */
   productionReady: z.boolean().default(false),
-});
+  preview: z.boolean().optional(),
+}).transform((manifest) => ({
+  ...manifest,
+  preview: manifest.preview ?? !manifest.productionReady,
+}));
 
 export type ModuleManifest = z.infer<typeof moduleManifestSchema>;
+
+export function isPreviewModule(manifest: Pick<ModuleManifest, 'preview'>): boolean {
+  return manifest.preview === true;
+}
+
+export function shouldLoadPreviewModules(): boolean {
+  return process.env.SHOW_PREVIEW_MODULES === '1';
+}
+
+export function filterDiscoveredManifests(manifests: ModuleManifest[]): ModuleManifest[] {
+  if (shouldLoadPreviewModules()) return manifests;
+  return manifests.filter((manifest) => !isPreviewModule(manifest));
+}
 
 export type ModuleStatus =
   | 'AVAILABLE'

@@ -3,8 +3,8 @@ import {
   type FeatureContext,
   type ModuleHealthCheckResult,
   type ModuleRouteRegistration,
-} from '../../src/module-system/types';
-import { paymentServiceRegistry } from '../../src/module-system/extension-points';
+} from '../../src/platform/module-api';
+import { paymentServiceRegistry } from '../../src/platform/module-api';
 import { defaultPaymentConfig, paymentConfigSchema } from './config';
 import { paymentManager } from './PaymentManager';
 import {

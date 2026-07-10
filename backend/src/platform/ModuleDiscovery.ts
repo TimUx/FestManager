@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config';
 import { logger } from '../utils/logger';
-import { moduleManifestSchema, type ModuleManifest } from './manifest';
+import { filterDiscoveredManifests, moduleManifestSchema, type ModuleManifest } from './manifest';
 
 /**
  * Scans /modules (and future /plugins) for module.json manifests.
@@ -46,7 +46,7 @@ export class ModuleDiscovery {
   discover(): ModuleManifest[] {
     const official = this.scanDirectory(config.modulesDir, 'official');
     const community = this.scanDirectory(config.pluginsDir, 'community');
-    return [...official, ...community];
+    return filterDiscoveredManifests([...official, ...community]);
   }
 
   getManifestPath(moduleId: string): string | null {

@@ -6,11 +6,23 @@
   "author": "FestSchmiede",
   "license": "MIT",
   "entry": "index",
-  "dependencies": { "required": [], "optional": ["payment"] },
+  "dependencies": {
+    "required": [],
+    "optional": [
+      "payment"
+    ]
+  },
   "permissions": [
-    { "key": "loyalty.manage", "description": "Treueprogramm verwalten" },
-    { "key": "loyalty.view", "description": "Treuepunkte einsehen" }
+    {
+      "key": "loyalty.manage",
+      "description": "Treueprogramm verwalten"
+    },
+    {
+      "key": "loyalty.view",
+      "description": "Treuepunkte einsehen"
+    }
   ],
   "minimumCoreVersion": "1.0.0",
-  "productionReady": false
+  "productionReady": false,
+  "preview": true
 }

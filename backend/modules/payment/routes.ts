@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { paymentManager } from './PaymentManager';
 import { AppError } from '../../src/middleware/errorHandler';
 import { webhookRateLimiter } from '../../src/middleware/rateLimit';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 import { createPaymentService } from './services/PaymentServiceImpl';
 
 export function createPaymentPublicRoutes(context: FeatureContext): Router {

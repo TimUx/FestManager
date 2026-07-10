@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { notificationManager } from './NotificationManager';
 import { notificationDeliveryRepository } from './repositories/notificationDeliveryRepository';
-import type { FeatureContext } from '../../src/module-system/types';
+import type { FeatureContext } from '../../src/platform/module-api';
 
 export function createNotificationAdminRoutes(context: FeatureContext): Router {
   const router = Router();

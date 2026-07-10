@@ -3,8 +3,8 @@ import {
   type FeatureContext,
   type ModuleHealthCheckResult,
   type ModuleRouteRegistration,
-} from '../../src/module-system/types';
-import { printerServiceRegistry } from '../../src/module-system/extension-points';
+} from '../../src/platform/module-api';
+import { printerServiceRegistry } from '../../src/platform/module-api';
 import { defaultPrinterConfig, printerConfigSchema } from './config';
 import { createPrinterHookSubscriptions } from './hooks';
 import { printManager } from './PrintManager';

@@ -3,7 +3,7 @@ import {
   type ModuleMenuItem,
   type ModulePermissionDefinition,
   type FeatureContext,
-} from '../../src/module-system/types';
+} from '../../src/platform/module-api';
 
 export interface StubModuleOptions {
   id: string;

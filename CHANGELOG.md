@@ -3,6 +3,16 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.2.2 - 2026-07-10
+
+### Geändert
+
+- **Module API v3:** Kanonische Runtime in `platform/`; `platform/module-api.ts` als einziger Modul-Import; `module-system/` nur noch deprecated Facade.
+- Preview-Module (`preview: true`) nur mit `SHOW_PREVIEW_MODULES=1`; Stub-Manifeste vereinfacht.
+- ADR 041; `MODULE_ARCHITECTURE.md` überarbeitet.
+
+---
+
 ## 2.2.1 - 2026-07-10
 
 ### Neu

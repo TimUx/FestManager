@@ -6,8 +6,8 @@ import type {
   PaymentStatusResult,
   RefundResult,
   WebhookVerificationResult,
-} from '../../../src/module-system/extension-points';
-import type { FeatureContext } from '../../../src/module-system/types';
+} from '../../../src/platform/module-api';
+import type { FeatureContext } from '../../../src/platform/module-api';
 import { paymentManager } from '../PaymentManager';
 import { paymentRepository } from '../repositories/paymentRepository';
 import { PAYMENT_FEATURES } from '../PaymentProvider';

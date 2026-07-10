@@ -1,4 +1,4 @@
-import { CORE_HOOKS } from '../../src/module-system/types';
+import { CORE_HOOKS } from '../../src/platform/module-api';
 export { PAYMENT_EVENTS } from './types';
 
 /** Payment-Modul Hook-Namen (registriert über CORE_HOOKS / HookSystem). */
