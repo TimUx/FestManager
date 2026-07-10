@@ -3,6 +3,23 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.2.2 - 2026-07-10
+
+### Neu
+
+- **Geführte Betriebsabläufe:** `./install.sh --update`, `--repair`, `--backup`, `--validate` — Backup, Migration, Health und Rollback ohne manuelle Docker-Befehle.
+- **Restore Dry-Run:** `DRY_RUN=1 ./scripts/backup/postgres-restore.sh` prüft Backup-Integrität ohne DB-Überschreibung.
+- **Installer-Tests:** `operations.test.sh`, `restore-dry-run.test.sh` in `qa:installer`.
+- **ADR-039:** Guided Operations.
+
+### Geändert
+
+- Wizard-Modi Upgrade/Migration nutzen dieselbe Update-Pipeline.
+- Klare Admin-Fehlermeldungen (`installer/lib/errors.sh`); Secrets nicht mehr in `install.state`.
+- `docs/OPERATIONS.md` und `docs/INSTALLATION.md` mit geführtem Update.
+
+---
+
 ## 2.2.1 - 2026-07-10
 
 ### Neu

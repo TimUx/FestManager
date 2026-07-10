@@ -1,6 +1,6 @@
 # FestSchmiede – Installationsanleitung
 
-> **Version 2.2.1** – Professioneller interaktiver Installations-Assistent (TUI)
+> **Version 2.2.2** – Professioneller interaktiver Installations-Assistent (TUI)
 
 ## Schnellstart
 
@@ -100,10 +100,23 @@ flowchart TD
 | Modus | Beschreibung |
 |-------|-------------|
 | Neuinstallation | Komplette Erstinstallation |
-| Upgrade | Images aktualisieren, Config beibehalten |
-| Migration | Von älterer Version migrieren |
-| Reparatur | Container neu starten |
+| Upgrade | Geführtes Update (Backup → Pull → Health → Rollback) |
+| Migration | Wie Upgrade, mit Migrations-Hinweisen |
+| Reparatur | Container neu starten + Health |
 | Nur Config | `.env` aktualisieren ohne Neuaufbau |
+
+## Geführte Betriebsbefehle (ohne TUI)
+
+Für Updates und Wartung ohne Wizard:
+
+```bash
+./install.sh --update      # Backup, Migration, Health, Rollback bei Fehler
+./install.sh --validate    # Voraussetzungen prüfen (keine Änderungen)
+./install.sh --backup      # Nur Datenbank-Backup
+./install.sh --repair      # Neustart + Health
+```
+
+Im Installationsverzeichnis ausführen (z. B. `~/festschmiede`). Details: [OPERATIONS.md](./OPERATIONS.md#update-durchführen), [ADR-039](./architecture/039-guided-operations.md).
 
 ## Rollback
 
@@ -135,6 +148,10 @@ Siehe auch: [DEPLOYMENT.md](./DEPLOYMENT.md), [DOCKER.md](./DOCKER.md)
 
 ```bash
 ./installer/tests/run-tests.sh
+./installer/tests/operations.test.sh
+./installer/tests/restore-dry-run.test.sh
+# oder gesamt:
+npm run qa:installer
 ```
 
 ## Troubleshooting
