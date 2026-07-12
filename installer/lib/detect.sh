@@ -183,6 +183,23 @@ detect_postgres_volume() {
   done
 }
 
+detect_swarm() {
+  SYS_DETECT[swarm_active]="no"
+  SYS_DETECT[swarm_local_state]="inactive"
+  SYS_DETECT[swarm_node_id]=""
+  SYS_DETECT[swarm_node_hostname]=""
+
+  [[ "${SYS_DETECT[docker_installed]:-no}" == "yes" ]] || return 0
+  docker info >/dev/null 2>&1 || return 0
+
+  SYS_DETECT[swarm_local_state]="$(docker info -f '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo inactive)"
+  if [[ "${SYS_DETECT[swarm_local_state]}" == "active" ]]; then
+    SYS_DETECT[swarm_active]="yes"
+    SYS_DETECT[swarm_node_id]="$(docker info -f '{{.Swarm.NodeID}}' 2>/dev/null || true)"
+    SYS_DETECT[swarm_node_hostname]="$(docker node inspect self --format '{{.Description.Hostname}}' 2>/dev/null || hostname)"
+  fi
+}
+
 detect_existing_festschmiede() {
   SYS_DETECT[existing_install]="no"
   if [[ -f "${INSTALL_DIR}/.env" ]]; then
@@ -193,6 +210,13 @@ detect_existing_festschmiede() {
     SYS_DETECT[existing_containers]="yes"
     SYS_DETECT[existing_install]="yes"
   fi
+  local stack_name
+  stack_name=$(grep -E '^STACK_NAME=' "${INSTALL_DIR}/.env" 2>/dev/null | head -1 | cut -d= -f2- || true)
+  stack_name="${stack_name:-festschmiede}"
+  if docker stack ls --format '{{.Name}}' 2>/dev/null | grep -qx "$stack_name"; then
+    SYS_DETECT[existing_swarm_stack]="yes"
+    SYS_DETECT[existing_install]="yes"
+  fi
 }
 
 run_full_detection() {
@@ -201,6 +225,7 @@ run_full_detection() {
   detect_hardware
   detect_docker
   detect_docker_resources
+  detect_swarm
   detect_reverse_proxy
   detect_firewall
   detect_ports
@@ -220,6 +245,10 @@ format_detection_report() {
   report+=$'\n'"Installiert:    ${SYS_DETECT[docker_installed]}"
   report+=$'\n'"Version:        ${SYS_DETECT[docker_version]:-–}"
   report+=$'\n'"Compose:        ${SYS_DETECT[compose_installed]} – ${SYS_DETECT[compose_version]:-–}"
+  report+=$'\n'"Swarm:          ${SYS_DETECT[swarm_active]:-no} (${SYS_DETECT[swarm_local_state]:-inactive})"
+  if [[ "${SYS_DETECT[swarm_active]:-no}" == "yes" ]]; then
+    report+=$'\n'"Swarm-Node:     ${SYS_DETECT[swarm_node_hostname]:-?}"
+  fi
   report+=$'\n\n'"--- Netzwerk / Proxy ---"
   report+=$'\n'"Reverse Proxy:  ${SYS_DETECT[proxy_detected]}"
   report+=$'\n'"Firewall:       ${SYS_DETECT[firewall]}"

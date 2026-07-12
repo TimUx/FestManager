@@ -117,16 +117,85 @@ Bitte installieren Sie Docker manuell und starten Sie den Assistenten erneut."
   return 0
 }
 
+init_swarm_if_needed() {
+  detect_swarm
+  case "${SYS_DETECT[swarm_local_state]:-inactive}" in
+    active)
+      CFG[SWARM_NODE_ID]="${SYS_DETECT[swarm_node_id]}"
+      CFG[SWARM_NODE_HOSTNAME]="${SYS_DETECT[swarm_node_hostname]}"
+      return 0
+      ;;
+    inactive)
+      if tui_yesno "Docker Swarm" "Docker Swarm ist auf diesem Host nicht aktiv.
+
+Für Swarm-Deployment wird ein Swarm-Cluster benötigt.
+Auf diesem Host jetzt initialisieren (Single-Node)?"; then
+        if docker swarm init >>"$LOG_FILE" 2>&1; then
+          detect_swarm
+          CFG[SWARM_NODE_ID]="${SYS_DETECT[swarm_node_id]}"
+          CFG[SWARM_NODE_HOSTNAME]="${SYS_DETECT[swarm_node_hostname]}"
+          log_info "Docker Swarm initialisiert auf ${CFG[SWARM_NODE_HOSTNAME]}"
+          return 0
+        fi
+        tui_msgbox "Fehler" "docker swarm init fehlgeschlagen.
+
+Protokoll: ${LOG_FILE}"
+        return 1
+      fi
+      return 1
+      ;;
+    *)
+      tui_msgbox "Docker Swarm" "Swarm-Status: ${SYS_DETECT[swarm_local_state]:-?}
+
+Bitte Swarm manuell konfigurieren oder Docker Compose wählen."
+      return 1
+      ;;
+  esac
+}
+
+wizard_step_deployment() {
+  detect_swarm
+  local compose_default="on" swarm_default="off"
+  if [[ "${SYS_DETECT[swarm_active]:-no}" == "yes" && "${SYS_DETECT[proxy_traefik]:-no}" == "yes" ]]; then
+    compose_default="off"
+    swarm_default="on"
+  fi
+
+  local choice
+  choice=$(tui_radiolist "Schritt 4: Ausrollung" "Wie soll FestSchmiede betrieben werden?
+
+Docker Compose: Standard für Einzelserver.
+Docker Swarm:   Für externen Traefik im Swarm-Modus (@swarm);
+                alle Services laufen mit 1 Replica auf diesem Host." \
+    "compose" "Docker Compose (Einzelserver, Standard)" "$compose_default" \
+    "swarm" "Docker Swarm (Traefik @swarm, 1 Replica auf diesem Host)" "$swarm_default" \
+  ) || return 1
+
+  CFG[DEPLOYMENT_MODE]="$choice"
+  CFG[STACK_NAME]="${CFG[STACK_NAME]:-festschmiede}"
+
+  if [[ "$choice" == "swarm" ]]; then
+    init_swarm_if_needed || return 1
+    log_info "Ausrollung: Swarm (Stack ${CFG[STACK_NAME]}, Node ${CFG[SWARM_NODE_HOSTNAME]})"
+  else
+    log_info "Ausrollung: Docker Compose"
+  fi
+  return 0
+}
+
 wizard_pick_existing_proxy_type() {
   local default="traefik"
   [[ "${SYS_DETECT[proxy_detected]:-none}" != "none" ]] && default="${SYS_DETECT[proxy_detected]}"
 
+  local traefik_label="Traefik (Docker-Labels im Compose-File)"
+  [[ "${CFG[DEPLOYMENT_MODE]:-compose}" == "swarm" ]] && traefik_label="Traefik (deploy.labels in stack.yml)"
+
   local choice
-  choice=$(tui_radiolist "Schritt 4b: Proxy-Typ" "Welchen Reverse Proxy verwenden Sie?
+  choice=$(tui_radiolist "Schritt 5b: Proxy-Typ" "Welchen Reverse Proxy verwenden Sie?
 
 Der Assistent erzeugt passende Docker-Labels (Traefik)
 oder Konfigurationsvorlagen (nginx, Caddy, …)." \
-    "traefik" "Traefik (Docker-Labels im Compose-File)" "$([[ "$default" == "traefik" ]] && echo on || echo off)" \
+    "traefik" "$traefik_label" "$([[ "$default" == "traefik" ]] && echo on || echo off)" \
     "nginx" "nginx" "$([[ "$default" == "nginx" ]] && echo on || echo off)" \
     "caddy" "Caddy" "$([[ "$default" == "caddy" ]] && echo on || echo off)" \
     "apache" "Apache httpd" "$([[ "$default" == "apache" ]] && echo on || echo off)" \
@@ -150,7 +219,7 @@ NGINX:   ${SYS_DETECT[proxy_nginx]}
 Caddy:   ${SYS_DETECT[proxy_caddy]}"
 
   local choice
-  choice=$(tui_radiolist "Schritt 4: Reverse Proxy" "${proxy_list}
+  choice=$(tui_radiolist "Schritt 5: Reverse Proxy" "${proxy_list}
 
 Reverse Proxy konfigurieren:" \
     "none" "Keiner (lokale Ports nach außen)" "on" \
@@ -169,6 +238,12 @@ Reverse Proxy konfigurieren:" \
       log_info "Kein Reverse Proxy: Host-Ports nach außen, kein zusätzliches Proxy-Netzwerk"
       ;;
     traefik)
+      if [[ "${CFG[DEPLOYMENT_MODE]:-compose}" == "swarm" ]]; then
+        tui_msgbox "Nicht unterstützt" "Integrierter Traefik im Stack ist mit Docker Swarm nicht verfügbar.
+
+Bitte 'Vorhandenen Proxy verwenden' wählen oder Docker Compose als Ausrollung."
+        return 1
+      fi
       CFG[PROXY_MODE]="traefik"
       CFG[PROXY_DEPLOYMENT]="bundled"
       CFG[USES_REVERSE_PROXY]="yes"
@@ -248,10 +323,17 @@ wizard_step_domain() {
 
 Erfordert gültige DNS-Einträge für ${CFG[PLATFORM_DOMAIN]} und *.${CFG[PLATFORM_DOMAIN]}"
   elif [[ "${CFG[PROXY_MODE]:-}" == "traefik" && "${CFG[PROXY_DEPLOYMENT]:-}" == "external" ]]; then
-    https_prompt="Traefik TLS-Labels im Compose-File setzen?
+    if [[ "${CFG[DEPLOYMENT_MODE]:-compose}" == "swarm" ]]; then
+      https_prompt="Traefik TLS-Labels in stack.yml setzen?
 
 Der vorhandene Traefik muss den Cert-Resolver kennen
 (oder TLS wird ohne Resolver gesetzt)."
+    else
+      https_prompt="Traefik TLS-Labels im Compose-File setzen?
+
+Der vorhandene Traefik muss den Cert-Resolver kennen
+(oder TLS wird ohne Resolver gesetzt)."
+    fi
   else
     https_prompt="HTTPS aktivieren?
 
@@ -402,14 +484,30 @@ Tipp: Regelmäßige Backups mit scripts/backup/postgres-backup.sh"
 
 --- Reverse Proxy ---
 Vorlagen/Labels: ${INSTALL_DIR}/installer/generated/"
-    if proxy_generates_traefik_labels; then
+    if deployment_uses_swarm; then
       body="${body}
+Stack: ${INSTALL_DIR}/stack.yml"
+    fi
+    if proxy_generates_traefik_labels; then
+      if deployment_uses_swarm; then
+        body="${body}
+Traefik-Labels in stack.yml (deploy.labels)"
+      else
+        body="${body}
 Traefik-Labels in docker-compose.override.yml"
+      fi
     fi
     if proxy_generates_config_files; then
       body="${body}
 Konfiguration: installer/generated/proxy/"
     fi
+  fi
+
+  if deployment_uses_swarm; then
+    body="${body}
+
+--- Swarm ---
+Stack: ${INSTALL_DIR}/stack.yml (${CFG[STACK_NAME]:-festschmiede})"
   fi
 
   tui_success "$body"
@@ -439,6 +537,7 @@ run_wizard() {
     wizard_step_system
     wizard_step_mode
     wizard_step_docker
+    wizard_step_deployment
     wizard_step_proxy
     wizard_step_network
     wizard_step_domain

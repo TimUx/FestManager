@@ -47,13 +47,126 @@ compose_down() {
   (cd "$INSTALL_DIR" && "${COMPOSE_CMD[@]}" "${COMPOSE_FILES[@]}" down) >>"$LOG_FILE" 2>&1 || true
 }
 
+stack_name() {
+  echo "${CFG[STACK_NAME]:-festschmiede}"
+}
+
+stack_down() {
+  local stack
+  stack="$(stack_name)"
+  if docker stack ls --format '{{.Name}}' 2>/dev/null | grep -qx "$stack"; then
+    log_info "Entferne Swarm-Stack: ${stack}"
+    docker stack rm "$stack" >>"$LOG_FILE" 2>&1 || true
+    local i
+    for ((i=1; i<=60; i++)); do
+      docker stack ps "$stack" >/dev/null 2>&1 || break
+      sleep 1
+    done
+  fi
+}
+
+deployment_down() {
+  apply_defaults
+  if deployment_uses_swarm; then
+    stack_down
+  else
+    build_compose_files
+    compose_down
+  fi
+}
+
+stack_pull() {
+  apply_defaults
+  local image_prefix="${CFG[GHCR_IMAGE_PREFIX]}"
+  local image_tag="${CFG[IMAGE_TAG]}"
+  local images=(
+    "${image_prefix}/backend:${image_tag}"
+    "${image_prefix}/frontend:${image_tag}"
+  )
+  if [[ "${CFG[DB_MODE]:-internal}" == "internal" ]]; then
+    images+=("postgres:16-alpine")
+  fi
+  if [[ "${CFG[USE_REDIS]:-no}" == "internal" ]]; then
+    images+=("redis:7-alpine")
+  fi
+
+  log_info "Lade Docker-Images für Swarm..."
+  local img
+  for img in "${images[@]}"; do
+    docker pull "$img" >>"$LOG_FILE" 2>&1 || return 1
+  done
+}
+
+stack_deploy() {
+  local stack_file
+  stack_file="$(swarm_stack_publish_path)"
+  [[ -f "$stack_file" ]] || { log_error "stack.yml fehlt: $stack_file"; return 1; }
+  local stack
+  stack="$(stack_name)"
+  log_info "Deploye Swarm-Stack: ${stack}"
+  docker stack deploy --with-registry-auth -c "$stack_file" "$stack" >>"$LOG_FILE" 2>&1
+}
+
+swarm_service_name() {
+  echo "$(stack_name)_${1}"
+}
+
+swarm_task_container_id() {
+  local svc="$1"
+  local task_id
+  task_id=$(docker service ps -q -f desired-state=running "$svc" 2>/dev/null | head -1)
+  [[ -n "$task_id" ]] || return 1
+  docker inspect "$task_id" --format '{{if .Status.ContainerStatus}}{{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null
+}
+
+container_health_ok_by_id() {
+  local cid="$1"
+  [[ -n "$cid" ]] || return 1
+  local status
+  status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || echo "")
+  [[ "$status" == "healthy" || "$status" == "running" ]]
+}
+
+wait_for_swarm_health() {
+  local timeout="${1:-180}"
+  local backend_svc frontend_svc backend_cid frontend_cid
+  backend_svc="$(swarm_service_name backend)"
+  frontend_svc="$(swarm_service_name frontend)"
+  log_info "Warte auf Swarm-Services (max. ${timeout}s)..."
+
+  local i
+  for ((i=1; i<=timeout; i++)); do
+    tui_gauge "Installation" $((i * 50 / timeout)) "Warte auf Backend... (${i}s)"
+    backend_cid=$(swarm_task_container_id "$backend_svc" || true)
+    if container_health_ok_by_id "$backend_cid"; then
+      log_info "Backend bereit nach ${i}s (Service: ${backend_svc})"
+      break
+    fi
+    [[ $i -eq $timeout ]] && { log_error "Backend-Timeout (Service: ${backend_svc})"; return 1; }
+    sleep 1
+  done
+
+  for ((i=1; i<=60; i++)); do
+    tui_gauge "Installation" $((50 + i * 50 / 60)) "Warte auf Frontend... (${i}s)"
+    frontend_cid=$(swarm_task_container_id "$frontend_svc" || true)
+    if container_health_ok_by_id "$frontend_cid"; then
+      log_info "Frontend bereit nach ${i}s (Service: ${frontend_svc})"
+      return 0
+    fi
+    sleep 1
+  done
+
+  log_warn "Frontend-Service nicht healthy (${frontend_svc}) — prüfen Sie Traefik/DNS falls Reverse Proxy aktiv"
+  return 0
+}
+
 reset_postgres_volume_if_requested() {
   [[ "${CFG[RESET_POSTGRES_VOLUME]:-}" == "yes" ]] || return 0
   local vol="${CFG[POSTGRES_VOLUME_NAME]:-${SYS_DETECT[postgres_volume_name]:-}}"
   [[ -n "$vol" ]] || return 0
 
   log_info "Entferne PostgreSQL-Volume: ${vol}"
-  compose_down
+  deployment_down
   if ! docker volume rm "$vol" >>"$LOG_FILE" 2>&1; then
     log_error "PostgreSQL-Volume konnte nicht entfernt werden: ${vol}"
     return 1
@@ -71,6 +184,11 @@ container_health_ok() {
 }
 
 wait_for_health() {
+  if deployment_uses_swarm; then
+    wait_for_swarm_health "$@"
+    return $?
+  fi
+
   local timeout="${1:-180}"
   local backend_container="${CFG[BACKEND_CONTAINER]:-festschmiede-backend}"
   local frontend_container="${CFG[FRONTEND_CONTAINER]:-festschmiede-frontend}"
@@ -102,7 +220,7 @@ wait_for_health() {
 
 run_installation() {
   local step=0
-  local total=6
+  local total=7
 
   tui_gauge "Installation" 0 "Vorbereitung..."
   install_docker_if_missing || return 1
@@ -110,30 +228,47 @@ run_installation() {
 
   if [[ "$INSTALL_MODE" != "config" ]]; then
     tui_gauge "Installation" $((step*100/total)) "Generiere Konfiguration..."
-    generate_compose_override
+    generate_deployment_config
     generate_env_file
-    build_compose_files
+    if deployment_uses_swarm; then
+      ensure_swarm_secrets
+    else
+      build_compose_files
+    fi
     step=$((step+1))
 
     tui_gauge "Installation" $((step*100/total)) "Lade Images..."
-    compose_pull || return 1
+    if deployment_uses_swarm; then
+      stack_pull || return 1
+    else
+      compose_pull || return 1
+    fi
     step=$((step+1))
 
     tui_gauge "Installation" $((step*100/total)) "Datenbank-Backup..."
     run_pre_migration_backup || return 1
     step=$((step+1))
 
-    tui_gauge "Installation" $((step*100/total)) "Starte Container..."
+    tui_gauge "Installation" $((step*100/total)) "Starte Services..."
     reset_postgres_volume_if_requested || return 1
-    compose_up || return 1
+    if deployment_uses_swarm; then
+      stack_deploy || return 1
+    else
+      compose_up || return 1
+    fi
     step=$((step+1))
 
     tui_gauge "Installation" $((step*100/total)) "Health-Check..."
     wait_for_health || return 1
   else
+    generate_deployment_config
     generate_env_file
-    build_compose_files
-    compose_up || return 1
+    if deployment_uses_swarm; then
+      stack_deploy || return 1
+    else
+      build_compose_files
+      compose_up || return 1
+    fi
   fi
 
   tui_gauge "Installation" 100 "Abgeschlossen"
@@ -143,9 +278,16 @@ run_installation() {
 
 docker_status_report() {
   local s="" containers
-  s+="Container:"
-  containers=$(docker ps --format '  {{.Names}}: {{.Status}}' 2>/dev/null | grep -E 'vereins-|festschmiede' || echo '  (keine)')
-  s+=$'\n'"${containers}"
+  apply_defaults
+  if deployment_uses_swarm; then
+    s+="Swarm-Stack: $(stack_name)"
+    containers=$(docker stack ps "$(stack_name)" --format '  {{.Name}}: {{.CurrentState}}' 2>/dev/null | head -6 || echo '  (keine)')
+    s+=$'\n'"${containers}"
+  else
+    s+="Container:"
+    containers=$(docker ps --format '  {{.Names}}: {{.Status}}' 2>/dev/null | grep -E 'vereins-|festschmiede' || echo '  (keine)')
+    s+=$'\n'"${containers}"
+  fi
   s+=$'\n\n'"Health:"
   if curl -fsS http://localhost:3001/api/health >/dev/null 2>&1; then
     s+=$'\n'"  Backend:  OK"
@@ -153,4 +295,17 @@ docker_status_report() {
     s+=$'\n'"  Backend:  nicht erreichbar"
   fi
   printf '%s' "$s"
+}
+
+deployment_up() {
+  apply_defaults
+  if deployment_uses_swarm; then
+    generate_deployment_config
+    stack_pull || return 1
+    stack_deploy || return 1
+  else
+    build_compose_files
+    compose_pull || return 1
+    compose_up || return 1
+  fi
 }

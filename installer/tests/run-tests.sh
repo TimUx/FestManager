@@ -136,6 +136,43 @@ grep -q "driver: bridge" "${INSTALL_DIR}/docker-compose.override.yml" \
 ! grep -q "traefik.enable=true" "${INSTALL_DIR}/docker-compose.override.yml" \
   && pass "bundled traefik labels only in prod overlay" || fail "bundled traefik labels only in prod overlay"
 
+echo "--- Swarm Stack ---"
+CFG=()
+CFG[DEPLOYMENT_MODE]="swarm"
+CFG[STACK_NAME]="festschmiede"
+CFG[SWARM_NODE_ID]="abc123node"
+CFG[SWARM_NODE_HOSTNAME]="testhost"
+CFG[USES_REVERSE_PROXY]="yes"
+CFG[PROXY_MODE]="traefik"
+CFG[PROXY_DEPLOYMENT]="external"
+CFG[HTTPS_ENABLED]="yes"
+CFG[TRAEFIK_CERT_RESOLVER]="le"
+CFG[INSTALL_PROFILE]="production"
+CFG[PLATFORM_DOMAIN]="festschmiede.example.de"
+CFG[DOCKER_PROXY_NETWORK]="traefik_network"
+CFG[DOCKER_INTERNAL_NETWORK]="festschmiede_internal"
+CFG[POSTGRES_USER]="festschmiede"
+CFG[POSTGRES_PASSWORD]="test-db-pass"
+CFG[POSTGRES_DB]="festschmiede"
+CFG[JWT_SECRET]="$(printf 'j%.0s' {1..40})"
+CFG[APP_ENCRYPTION_KEY]="$(printf 'e%.0s' {1..40})"
+CFG[PLATFORM_ADMIN_PASSWORD]="admin-pass"
+generate_all_secrets
+generate_swarm_stack
+grep -q "node.id == abc123node" "${INSTALL_DIR}/stack.yml" \
+  && pass "swarm placement constraint" || fail "swarm placement constraint"
+grep -q "traefik.enable=true" "${INSTALL_DIR}/stack.yml" \
+  && pass "swarm traefik deploy labels" || fail "swarm traefik deploy labels"
+grep -q "replicas: 1" "${INSTALL_DIR}/stack.yml" \
+  && pass "swarm single replica" || fail "swarm single replica"
+grep -q "external: true" "${INSTALL_DIR}/stack.yml" \
+  && pass "swarm external traefik network" || fail "swarm external traefik network"
+generate_env_file
+grep -q "DEPLOYMENT_MODE=swarm" "${INSTALL_DIR}/.env" \
+  && pass "env deployment mode swarm" || fail "env deployment mode swarm"
+! grep -q "^COMPOSE_FILE=" "${INSTALL_DIR}/.env" \
+  && pass "no compose file in swarm env" || fail "no compose file in swarm env"
+
 echo "--- Postgres Volume ---"
 TMP_PG=$(mktemp -d)
 export INSTALL_DIR="$TMP_PG" INSTALLER_DIR BACKUP_DIR="${TMP_PG}/.installer-state/backups"

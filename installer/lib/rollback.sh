@@ -13,6 +13,11 @@ create_pre_install_backup() {
   elif [[ -f "${INSTALL_DIR}/installer/generated/compose.override.yml" ]]; then
     cp "${INSTALL_DIR}/installer/generated/compose.override.yml" "$backup_path/compose.override.yml"
   fi
+  if [[ -f "${INSTALL_DIR}/stack.yml" ]]; then
+    cp "${INSTALL_DIR}/stack.yml" "$backup_path/stack.yml"
+  elif [[ -f "${INSTALL_DIR}/installer/generated/stack.yml" ]]; then
+    cp "${INSTALL_DIR}/installer/generated/stack.yml" "$backup_path/stack.yml"
+  fi
 
   echo "$backup_path" >"${STATE_DIR}/last_backup"
   log_info "Pre-Install-Backup: $backup_path"
@@ -34,7 +39,7 @@ perform_rollback() {
 
   log_info "Rollback von: $backup_path"
 
-  compose_down
+  deployment_down
 
   [[ -f "${backup_path}/.env" ]] && cp "${backup_path}/.env" "${INSTALL_DIR}/.env"
   [[ -f "${backup_path}/compose.override.yml" ]] && {
@@ -42,14 +47,23 @@ perform_rollback() {
     cp "${backup_path}/compose.override.yml" "${INSTALL_DIR}/installer/generated/compose.override.yml"
     cp "${backup_path}/compose.override.yml" "${INSTALL_DIR}/docker-compose.override.yml"
   }
+  [[ -f "${backup_path}/stack.yml" ]] && {
+    mkdir -p "${INSTALL_DIR}/installer/generated"
+    cp "${backup_path}/stack.yml" "${INSTALL_DIR}/installer/generated/stack.yml"
+    cp "${backup_path}/stack.yml" "${INSTALL_DIR}/stack.yml"
+  }
 
   log_info "Rollback abgeschlossen – Konfiguration wiederhergestellt"
 
   # Stack mit wiederhergestellter Konfiguration starten
   if [[ -f "${INSTALL_DIR}/.env" ]]; then
     load_existing_env
-    build_compose_files 2>/dev/null || true
-    compose_up 2>/dev/null || log_warn "compose up nach Rollback fehlgeschlagen — manuell starten"
+    if deployment_uses_swarm; then
+      stack_deploy 2>/dev/null || log_warn "stack deploy nach Rollback fehlgeschlagen — manuell starten"
+    else
+      build_compose_files 2>/dev/null || true
+      compose_up 2>/dev/null || log_warn "compose up nach Rollback fehlgeschlagen — manuell starten"
+    fi
   fi
 
   tui_msgbox "Rollback" "Die vorherige Konfiguration wurde wiederhergestellt.\n\nBackup: $backup_path\n\nContainer wurden neu gestartet." 2>/dev/null || \

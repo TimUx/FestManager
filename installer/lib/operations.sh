@@ -4,6 +4,7 @@
 # shellcheck source=installer/lib/common.sh
 source "${INSTALLER_DIR}/lib/common.sh"
 source "${INSTALLER_DIR}/lib/errors.sh"
+source "${INSTALLER_DIR}/lib/config.sh"
 source "${INSTALLER_DIR}/lib/docker.sh"
 source "${INSTALLER_DIR}/lib/rollback.sh"
 
@@ -132,8 +133,12 @@ perform_update_rollback() {
     fi
   fi
 
-  build_compose_files
-  compose_up || true
+  if deployment_uses_swarm; then
+    stack_deploy || true
+  else
+    build_compose_files
+    compose_up || true
+  fi
   tui_msgbox "Rollback abgeschlossen" "Die Installation wurde auf den vorherigen Stand zurückgesetzt.\n\nProtokoll: $LOG_FILE" 2>/dev/null || true
   return 0
 }
@@ -156,10 +161,19 @@ run_guided_update() {
   run_database_backup || return $?
 
   _ops_progress "Schritt 3/5: Neue Images laden..."
-  compose_pull || { installer_fail docker_pull; return "$EXIT_DOCKER"; }
+  if deployment_uses_swarm; then
+    generate_deployment_config
+    stack_pull || { installer_fail docker_pull; return "$EXIT_DOCKER"; }
+  else
+    compose_pull || { installer_fail docker_pull; return "$EXIT_DOCKER"; }
+  fi
 
-  _ops_progress "Schritt 4/5: Container starten (Migration)..."
-  compose_up || { installer_fail docker_up; perform_update_rollback; return "$EXIT_DOCKER"; }
+  _ops_progress "Schritt 4/5: Services starten (Migration)..."
+  if deployment_uses_swarm; then
+    stack_deploy || { installer_fail docker_up; perform_update_rollback; return "$EXIT_DOCKER"; }
+  else
+    compose_up || { installer_fail docker_up; perform_update_rollback; return "$EXIT_DOCKER"; }
+  fi
 
   wait_for_migration || { perform_update_rollback; return "$EXIT_MIGRATION"; }
 
@@ -177,8 +191,12 @@ run_guided_repair() {
   load_existing_env
   build_compose_files
 
-  _ops_progress "Reparatur: Container neu starten..."
-  compose_up || { installer_fail docker_up; return "$EXIT_DOCKER"; }
+  _ops_progress "Reparatur: Services neu starten..."
+  if deployment_uses_swarm; then
+    stack_deploy || { installer_fail docker_up; return "$EXIT_DOCKER"; }
+  else
+    compose_up || { installer_fail docker_up; return "$EXIT_DOCKER"; }
+  fi
 
   verify_health_strict 120 || return $?
   log_info "Reparatur erfolgreich"

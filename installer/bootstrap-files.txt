@@ -25,3 +25,4 @@ installer/generated/.gitkeep
 installer/logs/.gitkeep
 scripts/backup/postgres-backup.sh
 scripts/backup/postgres-restore.sh
+scripts/deploy/render-swarm-stack.sh

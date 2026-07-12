@@ -3,6 +3,16 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.3.12 - 2026-07-12
+
+### Neu
+
+- **Installer:** Wizard fragt Ausrollung ab — **Docker Compose** oder **Docker Swarm** (für externen Traefik @swarm).
+- **Installer:** Swarm-Modus erzeugt `stack.yml` mit `deploy.labels`, Placement auf Installations-Host (`node.id`), 1 Replica pro Service und Docker Secrets.
+- **Installer:** `scripts/deploy/render-swarm-stack.sh` nutzt dieselbe Stack-Generierung wie der Assistent.
+
+---
+
 ## 2.3.11 - 2026-07-12
 
 ### Behoben

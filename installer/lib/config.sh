@@ -103,6 +103,8 @@ apply_defaults() {
   CFG[DOCKER_PROXY_NETWORK]="${CFG[DOCKER_PROXY_NETWORK]:-${CFG[FESTSCHMIEDE_PROXY_NETWORK]:-${CFG[DOCKER_NETWORK]:-festschmiede_public}}}"
   CFG[DOCKER_NETWORK_CREATE]="${CFG[DOCKER_NETWORK_CREATE]:-yes}"
   CFG[USES_REVERSE_PROXY]="${CFG[USES_REVERSE_PROXY]:-no}"
+  CFG[DEPLOYMENT_MODE]="${CFG[DEPLOYMENT_MODE]:-compose}"
+  CFG[STACK_NAME]="${CFG[STACK_NAME]:-festschmiede}"
 
   # Legacy: PROXY_MODE=existing → externer Proxy ohne Typ
   if [[ "${CFG[PROXY_MODE]:-}" == "existing" ]]; then
@@ -208,6 +210,332 @@ proxy_generates_config_files() {
   local mode="${CFG[PROXY_MODE]:-none}"
   [[ "${CFG[USES_REVERSE_PROXY]:-no}" == "yes" ]] || return 1
   [[ "$mode" =~ ^(nginx|caddy|apache|haproxy)$ ]]
+}
+
+deployment_uses_swarm() {
+  [[ "${CFG[DEPLOYMENT_MODE]:-compose}" == "swarm" ]]
+}
+
+swarm_stack_generated_path() {
+  echo "${INSTALL_DIR}/installer/generated/stack.yml"
+}
+
+swarm_stack_publish_path() {
+  echo "${INSTALL_DIR}/stack.yml"
+}
+
+escape_yaml_value() {
+  printf '%s' "$1" | sed 's/"/\\"/g'
+}
+
+_swarm_node_placement_yaml() {
+  local node_id="${CFG[SWARM_NODE_ID]:-}"
+  local node_hostname="${CFG[SWARM_NODE_HOSTNAME]:-}"
+  cat <<'EOF'
+      placement:
+        constraints:
+EOF
+  if [[ -n "$node_id" ]]; then
+    echo "          - node.id == ${node_id}"
+  elif [[ -n "$node_hostname" ]]; then
+    echo "          - node.hostname == ${node_hostname}"
+  else
+    echo "          - node.role == manager"
+  fi
+}
+
+_write_swarm_traefik_deploy_labels() {
+  local domain="${CFG[PLATFORM_DOMAIN]}"
+  local proxy_net="${CFG[DOCKER_PROXY_NETWORK]}"
+  local resolver="${CFG[TRAEFIK_CERT_RESOLVER]:-}"
+
+  cat <<EOF
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${proxy_net}
+        - traefik.http.routers.festschmiede.rule=Host(\`${domain}\`) || HostRegexp(\`^[a-z0-9-]+\\\\.${domain}$\`)
+        - traefik.http.routers.festschmiede.entrypoints=websecure
+EOF
+  if [[ -n "$resolver" && "${CFG[HTTPS_ENABLED]:-no}" == "yes" ]]; then
+    cat <<EOF
+        - traefik.http.routers.festschmiede.tls.certresolver=${resolver}
+        - traefik.http.routers.festschmiede.tls.domains[0].main=${domain}
+        - traefik.http.routers.festschmiede.tls.domains[0].sans=*.${domain}
+EOF
+  else
+    echo "        - traefik.http.routers.festschmiede.tls=true"
+  fi
+  cat <<EOF
+        - traefik.http.routers.festschmiede.service=festschmiede
+        - traefik.http.services.festschmiede.loadbalancer.server.port=80
+        - traefik.http.middlewares.festschmiede-headers.headers.sslredirect=true
+        - traefik.http.middlewares.festschmiede-headers.headers.stsSeconds=31536000
+        - traefik.http.routers.festschmiede.middlewares=festschmiede-headers
+EOF
+}
+
+generate_swarm_stack() {
+  apply_defaults
+  local out="${INSTALL_DIR}/installer/generated"
+  mkdir -p "$out"
+  local file
+  file="$(swarm_stack_generated_path)"
+  local published
+  published="$(swarm_stack_publish_path)"
+  local stack_name="${CFG[STACK_NAME]:-festschmiede}"
+  local internal_net="${CFG[DOCKER_INTERNAL_NETWORK]}"
+  local proxy_net="${CFG[DOCKER_PROXY_NETWORK]}"
+  local use_proxy="${CFG[USES_REVERSE_PROXY]:-no}"
+  local proxy_mode="${CFG[PROXY_MODE]:-none}"
+  local db_mode="${CFG[DB_MODE]:-internal}"
+  local use_redis="${CFG[USE_REDIS]:-no}"
+  local image_prefix="${CFG[GHCR_IMAGE_PREFIX]}"
+  local image_tag="${CFG[IMAGE_TAG]}"
+  local domain="${CFG[PLATFORM_DOMAIN]}"
+
+  local db_user db_name db_pass jwt_sec enc_key admin_pass admin_email cors allowed wildcard
+  db_user="$(escape_yaml_value "${CFG[POSTGRES_USER]}")"
+  db_name="$(escape_yaml_value "${CFG[POSTGRES_DB]}")"
+  db_pass="$(escape_yaml_value "${CFG[POSTGRES_PASSWORD]}")"
+  jwt_sec="$(escape_yaml_value "${CFG[JWT_SECRET]}")"
+  enc_key="$(escape_yaml_value "${CFG[APP_ENCRYPTION_KEY]}")"
+  admin_pass="$(escape_yaml_value "${CFG[PLATFORM_ADMIN_PASSWORD]}")"
+  admin_email="$(escape_yaml_value "${CFG[PLATFORM_ADMIN_EMAIL]:-platform@festschmiede.local}")"
+  cors="$(escape_yaml_value "${CFG[CORS_ORIGIN]}")"
+  allowed="$(escape_yaml_value "${CFG[PLATFORM_ALLOWED_ORIGINS]:-}")"
+  wildcard="$(escape_yaml_value "${CFG[PLATFORM_WILDCARD_DOMAIN]:-}")"
+
+  local database_url redis_env="" smtp_env="" postgres_service="" redis_service="" secrets_block=""
+  if [[ "$db_mode" == "internal" ]]; then
+    database_url="postgresql://${db_user}:${db_pass}@postgres:5432/${db_name}"
+    postgres_service="
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${db_user}
+      POSTGRES_PASSWORD: \"${db_pass}\"
+      POSTGRES_DB: ${db_name}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+$(_swarm_node_placement_yaml)
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: \"2\"
+          memory: 1G
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [\"CMD-SHELL\", \"pg_isready -U ${db_user} -d ${db_name}\"]
+      interval: 5s
+      timeout: 5s
+      retries: 10"
+  else
+    database_url="$(escape_yaml_value "${CFG[DATABASE_URL]}")"
+  fi
+
+  if [[ "$use_redis" == "internal" ]]; then
+    redis_env="      REDIS_URL: \"redis://redis:6379\""
+    redis_service="
+  redis:
+    image: redis:7-alpine
+    command: [\"redis-server\", \"--appendonly\", \"yes\"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+$(_swarm_node_placement_yaml)
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: [\"CMD\", \"redis-cli\", \"ping\"]
+      interval: 10s
+      timeout: 3s
+      retries: 5"
+    secrets_block="
+  redis_data:"
+  elif [[ "$use_redis" == "external" && -n "${CFG[REDIS_URL]:-}" ]]; then
+    redis_env="      REDIS_URL: \"$(escape_yaml_value "${CFG[REDIS_URL]}")\""
+  fi
+
+  if [[ "${CFG[SMTP_ENABLED]:-no}" == "yes" ]]; then
+    smtp_env="      INSTALL_SMTP_HOST: \"$(escape_yaml_value "${CFG[SMTP_HOST]:-}")\"
+      INSTALL_SMTP_PORT: \"${CFG[SMTP_PORT]:-587}\""
+  fi
+
+  local frontend_networks frontend_ports="" backend_ports="" frontend_labels=""
+  if [[ "$use_proxy" == "yes" ]]; then
+    if proxy_uses_traefik_network; then
+      frontend_networks="      - internal
+      - traefik_network"
+      if proxy_generates_traefik_labels; then
+        frontend_labels="$(_write_swarm_traefik_deploy_labels)"
+      fi
+    else
+      frontend_networks="      - internal
+      - traefik_network"
+    fi
+  else
+    frontend_networks="      - internal"
+    backend_ports="
+    ports:
+      - target: 3001
+        published: 3001
+        protocol: tcp
+        mode: host"
+    frontend_ports="
+    ports:
+      - target: 80
+        published: 5173
+        protocol: tcp
+        mode: host"
+  fi
+
+  cat >"$file" <<EOF
+# Automatisch generiert vom FestSchmiede Installer v${INSTALLER_VERSION}
+# $(date -Iseconds)
+# Stack: ${stack_name} | Node: ${CFG[SWARM_NODE_HOSTNAME]:-?} (${CFG[SWARM_NODE_ID]:-?})
+# Swarm liest keine .env – sensible Werte sind inline (chmod 600 auf stack.yml)
+
+version: "3.8"
+
+services:${postgres_service}
+  backend:
+    image: ${image_prefix}/backend:${image_tag}
+${backend_ports}
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: "${database_url}"
+      JWT_SECRET: "${jwt_sec}"
+      JWT_EXPIRES_IN: "${CFG[JWT_EXPIRES_IN]:-8h}"
+      APP_ENCRYPTION_KEY: "${enc_key}"
+      CORS_ORIGIN: "${cors}"
+      MULTI_TENANT_ENABLED: "${CFG[MULTI_TENANT_ENABLED]:-false}"
+      PLATFORM_DOMAIN: "${domain}"
+      PLATFORM_BASE_DOMAIN: "${domain}"
+      PLATFORM_WILDCARD_DOMAIN: "${wildcard}"
+      PLATFORM_ALLOWED_ORIGINS: "${allowed}"
+      DEFAULT_TENANT_SLUG: "${CFG[DEFAULT_TENANT_SLUG]:-default}"
+      TRUSTED_PROXY_HOPS: "${CFG[TRUSTED_PROXY_HOPS]:-2}"
+      LOG_FORMAT: "${CFG[LOG_FORMAT]:-json}"
+      PLATFORM_ADMIN_EMAIL: "${admin_email}"
+      PLATFORM_ADMIN_PASSWORD: "${admin_pass}"
+${redis_env}
+${smtp_env}
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+$(_swarm_node_placement_yaml)
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+        reservations:
+          memory: 128M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    image: ${image_prefix}/frontend:${image_tag}
+${frontend_ports}
+    networks:
+${frontend_networks}
+    deploy:
+      replicas: 1
+$(_swarm_node_placement_yaml)
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+        reservations:
+          memory: 64M
+${frontend_labels}
+${redis_service}
+
+networks:
+  internal:
+    driver: overlay
+    name: ${internal_net}
+    attachable: true
+EOF
+
+  if [[ "$use_proxy" == "yes" ]]; then
+    cat >>"$file" <<EOF
+  traefik_network:
+    external: true
+    name: ${proxy_net}
+EOF
+  fi
+
+  cat >>"$file" <<EOF
+
+volumes:
+  postgres_data:
+  uploads_data:${secrets_block}
+EOF
+
+  cp "$file" "$published"
+  chmod 600 "$published"
+  log_info "Swarm-Stack erzeugt: $published"
+}
+
+ensure_swarm_secrets() {
+  deployment_uses_swarm || return 0
+  local prefix="${CFG[STACK_NAME]:-festschmiede}"
+  local name value
+
+  for name in db_password jwt_secret app_encryption_key platform_admin_password; do
+    case "$name" in
+      db_password) value="${CFG[POSTGRES_PASSWORD]}" ;;
+      jwt_secret) value="${CFG[JWT_SECRET]}" ;;
+      app_encryption_key) value="${CFG[APP_ENCRYPTION_KEY]}" ;;
+      platform_admin_password) value="${CFG[PLATFORM_ADMIN_PASSWORD]}" ;;
+    esac
+    [[ -n "$value" ]] || continue
+    local full_name="${prefix}_${name}"
+    if docker secret inspect "$full_name" >/dev/null 2>&1; then
+      log_info "Swarm-Secret ${full_name} existiert bereits"
+      continue
+    fi
+    if printf '%s' "$value" | docker secret create "$full_name" - >>"$LOG_FILE" 2>&1; then
+      log_info "Swarm-Secret erstellt: ${full_name}"
+    else
+      log_warn "Swarm-Secret ${full_name} konnte nicht erstellt werden"
+    fi
+  done
+}
+
+generate_deployment_config() {
+  if deployment_uses_swarm; then
+    generate_swarm_stack
+    generate_proxy_config_files
+  else
+    generate_compose_override
+  fi
 }
 
 _write_traefik_frontend_labels() {
@@ -631,7 +959,7 @@ generate_env_file() {
   fi
 
   local compose_file_line=""
-  if [[ -f "$(compose_override_publish_path)" ]]; then
+  if ! deployment_uses_swarm && [[ -f "$(compose_override_publish_path)" ]]; then
     if [[ "${CFG[PROXY_MODE]:-}" == "traefik" && "${CFG[PROXY_DEPLOYMENT]:-}" == "bundled" ]]; then
       compose_file_line="COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml:docker-compose.override.yml"
     else
@@ -684,6 +1012,11 @@ PROXY_MODE=${CFG[PROXY_MODE]:-none}
 PROXY_DEPLOYMENT=${CFG[PROXY_DEPLOYMENT]:-none}
 TRAEFIK_CERT_RESOLVER=${CFG[TRAEFIK_CERT_RESOLVER]:-}
 
+DEPLOYMENT_MODE=${CFG[DEPLOYMENT_MODE]:-compose}
+STACK_NAME=${CFG[STACK_NAME]:-festschmiede}
+SWARM_NODE_ID=${CFG[SWARM_NODE_ID]:-}
+SWARM_NODE_HOSTNAME=${CFG[SWARM_NODE_HOSTNAME]:-}
+
 ${compose_file_line}
 
 # Installer-Metadaten
@@ -700,6 +1033,10 @@ format_config_summary() {
   local s=""
   s+="Modus:            ${INSTALL_MODE}"
   s+=$'\n'"Profil:            ${CFG[INSTALL_PROFILE]:-local}"
+  s+=$'\n'"Ausrollung:        ${CFG[DEPLOYMENT_MODE]:-compose}"
+  if deployment_uses_swarm; then
+    s+=$'\n'"Stack:             ${CFG[STACK_NAME]:-festschmiede} (1 Replica auf ${CFG[SWARM_NODE_HOSTNAME]:-diesem Host})"
+  fi
   s+=$'\n'"Plattform:         ${CFG[PLATFORM_NAME]:-FestSchmiede}"
   s+=$'\n'"Domain:            ${CFG[PLATFORM_DOMAIN]}"
   s+=$'\n'"Datenbank:         ${CFG[DB_MODE]:-internal} (PostgreSQL)"
@@ -709,7 +1046,11 @@ format_config_summary() {
   if [[ "${CFG[USES_REVERSE_PROXY]:-no}" == "yes" ]]; then
     s+=$'\n'"Proxy-Netz:        ${CFG[DOCKER_PROXY_NETWORK]:-festschmiede_public} (nur Frontend)"
     if proxy_generates_traefik_labels; then
-      s+=$'\n'"Traefik-Labels:    docker-compose.override.yml (Frontend)"
+      if deployment_uses_swarm; then
+        s+=$'\n'"Traefik-Labels:    stack.yml (deploy.labels)"
+      else
+        s+=$'\n'"Traefik-Labels:    docker-compose.override.yml (Frontend)"
+      fi
     elif proxy_generates_config_files; then
       s+=$'\n'"Proxy-Vorlagen:    installer/generated/proxy/"
     fi

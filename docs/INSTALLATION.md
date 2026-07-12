@@ -1,13 +1,13 @@
 # FestSchmiede – Installationsanleitung
 
-> **Version 2.3.11** – Professioneller interaktiver Installations-Assistent (TUI)
+> **Version 2.3.12** – Professioneller interaktiver Installations-Assistent (TUI)
 
 ## Schnellstart
 
 ### Online (ohne Git-Clone)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TimUx/FestSchmiede/v2.3.11/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TimUx/FestSchmiede/v2.3.12/install.sh | bash
 ```
 
 **Installationspfad angeben** (Priorität: `--dir` > `FESTSCHMIEDE_INSTALL_DIR` > interaktive Abfrage > Default):
@@ -189,7 +189,47 @@ Siehe auch: [Operations — Backup & Restore](./OPERATIONS.md), [ADR-027](./arch
 | `docker-compose.yml` | Standard (lokal, Single-Node) |
 | `docker-compose.prod.yml` | Traefik, interne Netzwerke, Healthchecks |
 | `docker-compose.ci.yml` | CI/QA |
-| `docker-stack.yml` | Docker Swarm |
+| `docker-stack.yml` | Docker Swarm (Vorlage) |
+| `stack.yml` | Generiert: `scripts/deploy/render-swarm-stack.sh` (Werte aus `.env`) |
+
+### Docker Swarm (Installer)
+
+Der Installations-Assistent fragt im Schritt **Ausrollung**, ob FestSchmiede als **Docker Compose** oder **Docker Swarm** betrieben werden soll.
+
+| Modus | Konfiguration | Start |
+|-------|---------------|-------|
+| Compose | `docker-compose.override.yml`, `.env` mit `COMPOSE_FILE` | `docker compose up -d` |
+| Swarm | `stack.yml` (generiert, chmod 600), `.env` mit `DEPLOYMENT_MODE=swarm` | `docker stack deploy -c stack.yml festschmiede` |
+
+Swarm-Voraussetzungen für externen Traefik:
+
+- Traefik läuft im **Swarm-Modus** (`@swarm` Router)
+- Overlay-Netzwerk `traefik_network` (oder gewähltes Proxy-Netz) existiert
+- Alle Services: **1 Replica** auf dem Host, auf dem das Install-Skript läuft (`node.id`-Constraint)
+
+Der Installer initialisiert Swarm bei Bedarf (`docker swarm init`) und legt Docker Secrets an (`festschmiede_db_password`, …).
+
+### Migration Compose → Swarm (manuell)
+
+Swarm liest **keine** `.env`-Datei. Werte aus `.env` in `stack.yml` rendern:
+
+```bash
+cd /srv/apps/festschmiede
+bash scripts/deploy/render-swarm-stack.sh /srv/apps/festschmiede > stack.yml
+chmod 600 stack.yml
+
+# Compose stoppen (Volumes bleiben erhalten)
+docker compose down
+
+# Stack deployen (Name = bisheriges Compose-Projekt → gleiche Volume-Namen)
+docker stack deploy -c stack.yml festschmiede
+
+docker stack ps festschmiede
+docker service logs festschmiede_frontend --tail 20
+```
+
+Traefik-Labels stehen unter `deploy.labels` (nicht unter `labels:` auf Service-Ebene).
+Das externe Netz `traefik_network` muss als Overlay-Netzwerk existieren.
 
 | Service | Rolle |
 |---------|-------|
