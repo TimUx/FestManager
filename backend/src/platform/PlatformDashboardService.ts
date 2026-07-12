@@ -3,9 +3,14 @@ import fs from 'fs';
 import { prisma } from '../config/database';
 import { config } from '../config';
 import type { PlatformContext } from './tenant/PlatformContext';
+import type { PlatformBackupService } from './backup/PlatformBackupService';
 
 export class PlatformDashboardService {
-  constructor(private readonly platformContext: PlatformContext) {}
+  constructor(
+    private readonly platformContext: PlatformContext,
+    private readonly backupService: PlatformBackupService,
+    private readonly monitoringService: PlatformMonitoringService,
+  ) {}
 
   async getStats() {
     const todayStart = new Date();
@@ -34,6 +39,8 @@ export class PlatformDashboardService {
     const platform = this.platformContext.current();
     const mem = process.memoryUsage();
     const load = os.loadavg();
+    const backupOverview = await this.backupService.getOverview();
+    const monitoring = await this.monitoringService.getOverview();
 
     return {
       tenants: {
@@ -61,13 +68,15 @@ export class PlatformDashboardService {
         cpus: os.cpus().length,
       },
       backups: {
-        lastBackup: null as string | null,
-        strategy: 'manual',
+        lastBackup: backupOverview.lastFullBackup,
+        strategy: backupOverview.strategies.join('+'),
+        restoreAvailable: backupOverview.restoreAvailable,
       },
       health: {
         database: await this.checkDatabase(),
         defaultTenant: await prisma.tenant.count({ where: { slug: 'default' } }) > 0,
       },
+      monitoring,
     };
   }
 

@@ -7,6 +7,7 @@ import { logger } from '../../utils/logger';
 import type { MailMessage, MailQueueStatus, MailSendResult, PlatformSmtpConfig } from './types';
 import { renderMailTemplate, type TemplateContext } from './templates';
 import type { MailTemplateId } from './types';
+import { humanizeSmtpError, resolveSmtpTransportOptions } from './smtpTransport';
 
 const SMTP_PREFIX = 'platform.smtp.';
 const ENCRYPTED_KEYS = new Set(['platform.smtp.pass']);
@@ -35,12 +36,16 @@ function formatFrom(smtp: PlatformSmtpConfig): string {
 
 function createTransporter(smtp: PlatformSmtpConfig): Transporter | null {
   if (!smtp.host) return null;
-  const secure = smtp.secure || smtp.port === 465;
+  const port = smtp.port || 587;
+  const { secure, requireTLS } = resolveSmtpTransportOptions(port, {
+    secure: smtp.secure,
+    useTls: smtp.useTls,
+  });
   return nodemailer.createTransport({
     host: smtp.host,
-    port: smtp.port,
+    port,
     secure,
-    requireTLS: !secure && smtp.useTls,
+    requireTLS,
     connectionTimeout: smtp.timeout,
     greetingTimeout: smtp.timeout,
     socketTimeout: smtp.timeout,
@@ -139,7 +144,8 @@ export class MailService {
       await this.recordDelivery(message.tenantId ?? 'platform', 'sent', message.to, message.template);
       return { ok: true };
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'SMTP-Versand fehlgeschlagen';
+      const raw = err instanceof Error ? err.message : 'SMTP-Versand fehlgeschlagen';
+      const error = humanizeSmtpError(raw, smtp.port);
       await this.recordDelivery(message.tenantId ?? 'platform', 'failed', message.to, message.template, error);
       logger.error('MailService Versand fehlgeschlagen', { to: message.to, error });
       return { ok: false, error };
@@ -168,8 +174,8 @@ export class MailService {
     return this.sendTemplate('test-mail', recipient, {});
   }
 
-  async testConnection(): Promise<{ ok: boolean; message: string }> {
-    const smtp = await this.loadConfig();
+  async testConnection(override?: Record<string, unknown>): Promise<{ ok: boolean; message: string }> {
+    const smtp = await this.resolveConfigForTest(override);
     if (!smtp) {
       return { ok: false, message: 'SMTP nicht konfiguriert oder deaktiviert' };
     }
@@ -181,8 +187,34 @@ export class MailService {
       await transporter.verify();
       return { ok: true, message: `SMTP-Verbindung zu ${smtp.host}:${smtp.port} erfolgreich` };
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : 'Verbindung fehlgeschlagen' };
+      const raw = err instanceof Error ? err.message : 'Verbindung fehlgeschlagen';
+      return { ok: false, message: humanizeSmtpError(raw, smtp.port) };
     }
+  }
+
+  private async resolveConfigForTest(override?: Record<string, unknown>): Promise<PlatformSmtpConfig | null> {
+    const base = await this.loadConfig();
+    if (!override || Object.keys(override).length === 0) return base;
+
+    const enabled = override.enabled !== undefined ? readBool(override.enabled, true) : Boolean(base);
+    const host = readString(override.host) || base?.host || '';
+    if (!enabled || !host) return base;
+
+    const port = readNumber(override.port, base?.port ?? 587);
+    const passOverride = readString(override.pass);
+    return {
+      enabled: true,
+      host,
+      port,
+      user: readString(override.user) || base?.user || '',
+      pass: passOverride || base?.pass || '',
+      from: readString(override.from) || base?.from || `noreply@${config.multiTenant.baseDomain}`,
+      senderName: readString(override.senderName) || base?.senderName || '',
+      replyTo: readString(override.replyTo) || base?.replyTo || '',
+      secure: readBool(override.secure, base?.secure ?? false),
+      useTls: readBool(override.useTls, base?.useTls ?? true),
+      timeout: readNumber(override.timeout, base?.timeout ?? 30000),
+    };
   }
 
   async getQueueStatus(): Promise<MailQueueStatus> {

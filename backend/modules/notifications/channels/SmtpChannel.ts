@@ -3,6 +3,7 @@ import type { Transporter } from 'nodemailer';
 import { decryptValue, isEncryptedValue } from '../../../src/platform/settings/SettingsEncryption';
 import type { NotificationConfig } from '../config';
 import type { ChannelHealthResult, ChannelSendResult, NotificationChannel, NotificationMessage } from '../NotificationChannel';
+import { resolveSmtpTransportOptions } from '../../../src/platform/mail/smtpTransport';
 
 function resolveSmtpPass(pass: unknown): string {
   if (typeof pass !== 'string') return '';
@@ -15,12 +16,15 @@ function createTransporter(smtp: NotificationConfig['smtp']): Transporter | null
   const port = Number(smtp.port ?? 587);
   const user = String(smtp.user ?? '').trim();
   const pass = resolveSmtpPass(smtp.pass);
-  const secure = Boolean(smtp.secure) || port === 465;
+  const { secure, requireTLS } = resolveSmtpTransportOptions(port, {
+    secure: Boolean(smtp.secure),
+    useTls: smtp.useTls,
+  });
   return nodemailer.createTransport({
     host,
     port,
     secure,
-    requireTLS: !secure && smtp.useTls !== false,
+    requireTLS,
     auth: user ? { user, pass } : undefined,
   });
 }

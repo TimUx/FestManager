@@ -12,6 +12,7 @@ interface PlatformAuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<PlatformUser>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const PlatformAuthContext = createContext<PlatformAuthContextType | null>(null);
@@ -58,8 +59,15 @@ export function PlatformAuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const currentToken = localStorage.getItem(PLATFORM_TOKEN_KEY);
+    if (!currentToken) return;
+    const me = await platformApi.me(currentToken);
+    setUser(me);
+  }, []);
+
   return (
-    <PlatformAuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <PlatformAuthContext.Provider value={{ user, token, loading, login, logout, refreshUser }}>
       {children}
     </PlatformAuthContext.Provider>
   );

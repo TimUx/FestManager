@@ -85,7 +85,7 @@ export const DEFAULT_TENANT: TenantPublicData = {
 
 export const DEFAULT_PLATFORM: PlatformPublicData = {
   name: 'FestSchmiede',
-  version: '2.0.0',
+  version: '',
   baseDomain: 'localhost',
   maintenanceMode: false,
   primaryColor: '#1565c0',

@@ -3,6 +3,29 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.4.7 - 2026-07-12
+
+### Hinzugefügt
+
+- **Plattform → Rechtliches:** Mustertexte für Impressum, Datenschutz und Nutzungsbedingungen (automatisch vorausgefüllt, Button „Beispieltext laden“).
+- **Plattform → Backups:** Vollbackup und Mandanten-Backup inkl. Restore, Validierung und Download über die Plattform-UI (`/app/backups`-Volume).
+- **Plattform → Profil:** Eigenes Profil unter `/platform/profil` (Name, E-Mail, Passwort).
+- **Plattform → Benutzer:** Administratoren anlegen und bearbeiten (inkl. Passwort-Reset und Aktiv/Inaktiv).
+
+### Geändert
+
+- **Dashboard:** Monitoring-Metriken integriert; separater Menüpunkt „Monitoring“ entfernt.
+- **Plattformversion:** Anzeige und `CORE_VERSION` aus `package.json` statt statischem Fallback `2.0.0`.
+- **Plattform-Einstellungen:** Booleans als Schalter; Mandantenbewerbungen wirken sofort nach Speichern.
+- **Plattform-UI:** Pfad-basiertes Routing (keine Wildcard/Subdomain-Felder mehr); Dokumentations-Link aus GitHub-URL; SMTP-Verschlüsselung als ein Modus (STARTTLS/SSL/keine).
+- **Mandanten:** Slug und Subdomain werden beim Anlegen/Aktualisieren synchron gehalten.
+
+### Behoben
+
+- **SMTP:** Portabhängige TLS-Konfiguration (587=STARTTLS, 465=SSL), gegenseitiger Ausschluss von SSL/STARTTLS, klarere Zertifikatsfehler.
+
+---
+
 ## 2.4.6 - 2026-07-12
 
 ### Behoben

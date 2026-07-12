@@ -1,4 +1,5 @@
 import { Router, RequestHandler } from 'express';
+import { config } from '../config';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { tenantModuleRepository } from '../repositories/tenantModuleRepository';
@@ -73,7 +74,7 @@ export class ModuleManager {
     for (const manifest of manifests) {
       if (!this.deps.moduleRegistry.satisfiesCoreVersion(manifest)) {
         logger.warn(
-          `Modul ${manifest.id} benötigt Core ${manifest.minimumCoreVersion}, aktuell ${process.env.CORE_VERSION ?? '2.0.0'}`
+          `Modul ${manifest.id} benötigt Core ${manifest.minimumCoreVersion}, aktuell ${config.coreVersion}`
         );
         continue;
       }

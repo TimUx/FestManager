@@ -73,8 +73,11 @@ export class PlatformTenantAdminService {
 
   async create(input: CreateTenantInput, actorId: string): Promise<TenantRecord> {
     const defaults = this.platformContext.current();
+    const slug = input.slug.trim();
     const enriched: CreateTenantInput = {
       ...input,
+      slug,
+      subdomain: (input.subdomain?.trim() || slug),
       locale: input.locale ?? defaults.defaultLocale,
       timezone: input.timezone ?? defaults.defaultTimezone,
       currency: input.currency ?? defaults.defaultCurrency,
@@ -92,7 +95,11 @@ export class PlatformTenantAdminService {
   }
 
   async update(id: string, input: UpdateTenantInput, actorId: string): Promise<TenantRecord> {
-    const tenant = await this.tenantService.update(id, input);
+    const payload: UpdateTenantInput = { ...input };
+    if (payload.slug !== undefined && payload.subdomain === undefined) {
+      payload.subdomain = payload.slug.trim();
+    }
+    const tenant = await this.tenantService.update(id, payload);
     await this.audit.log({
       action: 'platform.tenant.update',
       actorId,

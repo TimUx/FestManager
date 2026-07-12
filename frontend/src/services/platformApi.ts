@@ -9,6 +9,31 @@ export interface PlatformUser {
   permissions: string[];
   lastLoginAt?: string | null;
   mfaEnabled?: boolean;
+  active?: boolean;
+  createdAt?: string;
+}
+
+export interface UpdatePlatformProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export interface CreatePlatformUserPayload {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdatePlatformUserPayload {
+  email?: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  active?: boolean;
 }
 
 export interface TenantApplication {
@@ -72,6 +97,26 @@ export interface PlatformDomainsInfo {
   allowedOrigins?: string[];
   source: 'infrastructure';
   note?: string;
+}
+
+export interface PlatformBackupEntry {
+  filename: string;
+  strategy: 'full' | 'tenant' | 'unknown';
+  createdAt: string;
+  sizeBytes: number;
+  tenantSlug: string | null;
+  tenantName: string | null;
+  restorable: boolean;
+  source: 'manual' | 'automatic';
+}
+
+export interface PlatformBackupOverview {
+  strategies: Array<'full' | 'tenant'>;
+  lastFullBackup: string | null;
+  restoreAvailable: boolean;
+  backupDir: string;
+  pgToolsAvailable: boolean;
+  items: PlatformBackupEntry[];
 }
 
 export interface PlatformTenant {
@@ -160,9 +205,10 @@ export const platformApi = {
 
   me: (token: string) => platformRequest<PlatformUser>('/auth/me', {}, token),
 
-  getDashboard: (token: string) => platformRequest<Record<string, unknown>>('/dashboard', {}, token),
+  updateProfile: (token: string, data: UpdatePlatformProfilePayload) =>
+    platformRequest<PlatformUser>('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }, token),
 
-  getMonitoring: (token: string) => platformRequest<Record<string, unknown>>('/monitoring', {}, token),
+  getDashboard: (token: string) => platformRequest<Record<string, unknown>>('/dashboard', {}, token),
 
   getHealth: (token: string) => platformRequest<Record<string, unknown>>('/health', {}, token),
 
@@ -182,7 +228,7 @@ export const platformApi = {
   getTenant: (token: string, id: string) =>
     platformRequest<PlatformTenant>(`/tenants/${id}`, {}, token),
 
-  createTenant: (token: string, data: UpdatePlatformTenantPayload & { name: string; slug: string; subdomain: string }) =>
+  createTenant: (token: string, data: UpdatePlatformTenantPayload & { name: string; slug: string; subdomain?: string }) =>
     platformRequest<PlatformTenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }, token),
 
   updateTenant: (token: string, id: string, data: UpdatePlatformTenantPayload) =>
@@ -237,10 +283,64 @@ export const platformApi = {
   },
 
   listUsers: (token: string) =>
-    platformRequest<{ items: Array<Record<string, unknown>> }>('/users', {}, token),
+    platformRequest<{ items: PlatformUser[] }>('/users', {}, token),
+
+  createUser: (token: string, data: CreatePlatformUserPayload) =>
+    platformRequest<PlatformUser>('/users', { method: 'POST', body: JSON.stringify(data) }, token),
+
+  updateUser: (token: string, id: string, data: UpdatePlatformUserPayload) =>
+    platformRequest<PlatformUser>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }, token),
 
   getBackups: (token: string) =>
-    platformRequest<Record<string, unknown>>('/backups', {}, token),
+    platformRequest<PlatformBackupOverview>('/backups', {}, token),
+
+  createFullBackup: (token: string) =>
+    platformRequest<PlatformBackupEntry>('/backups/full', { method: 'POST' }, token),
+
+  createTenantBackup: (token: string, tenantId: string) =>
+    platformRequest<PlatformBackupEntry>('/backups/tenant', {
+      method: 'POST',
+      body: JSON.stringify({ tenantId }),
+    }, token),
+
+  validateBackup: (token: string, filename: string) =>
+    platformRequest<{ ok: true; sizeBytes: number; strategy: PlatformBackupEntry['strategy'] }>(
+      `/backups/${encodeURIComponent(filename)}/validate`,
+      { method: 'POST' },
+      token
+    ),
+
+  restoreBackup: (token: string, filename: string) =>
+    platformRequest<{ strategy: 'full' | 'tenant'; message: string }>(
+      `/backups/${encodeURIComponent(filename)}/restore`,
+      { method: 'POST', body: JSON.stringify({ confirm: true }) },
+      token
+    ),
+
+  deleteBackup: (token: string, filename: string) =>
+    platformRequest<void>(
+      `/backups/${encodeURIComponent(filename)}`,
+      { method: 'DELETE' },
+      token
+    ),
+
+  downloadBackup: async (token: string, filename: string) => {
+    const res = await fetch(
+      `${API_URL}/api/platform/backups/${encodeURIComponent(filename)}/download`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Download fehlgeschlagen' }));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
 
   listApplications: (token: string, params?: { search?: string; status?: string; page?: number }) => {
     const q = new URLSearchParams();
@@ -282,6 +382,9 @@ export const platformApi = {
   listLegalPages: (token: string) =>
     platformRequest<{ items: PlatformLegalPageAdmin[] }>('/legal-pages', {}, token),
 
+  getLegalPageExample: (token: string, pageType: string) =>
+    platformRequest<{ contentHtml: string }>(`/legal-pages/${pageType}/example`, {}, token),
+
   updateLegalPage: (token: string, pageType: string, data: Partial<PlatformLegalPageAdmin>) =>
     platformRequest<PlatformLegalPageAdmin>(`/legal-pages/${pageType}`, {
       method: 'PUT',
@@ -300,8 +403,12 @@ export const platformApi = {
   updateMailAuth: (token: string, data: Record<string, unknown>) =>
     platformRequest<Record<string, unknown>>('/mail/auth', { method: 'PUT', body: JSON.stringify(data) }, token),
 
-  testMailConnection: (token: string) =>
-    platformRequest<{ ok: boolean; message: string }>('/mail/test-connection', { method: 'POST' }, token),
+  testMailConnection: (token: string, smtp?: Record<string, unknown>) =>
+    platformRequest<{ ok: boolean; message: string }>(
+      '/mail/test-connection',
+      { method: 'POST', body: JSON.stringify(smtp ?? {}) },
+      token
+    ),
 
   sendTestMail: (token: string, recipient: string) =>
     platformRequest<{ ok: boolean }>('/mail/test', { method: 'POST', body: JSON.stringify({ recipient }) }, token),

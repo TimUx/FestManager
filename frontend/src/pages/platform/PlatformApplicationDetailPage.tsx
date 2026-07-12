@@ -67,7 +67,7 @@ export function PlatformApplicationDetailPage() {
           <Typography><strong>E-Mail:</strong> {application.email}</Typography>
           <Typography><strong>Telefon:</strong> {application.phone ?? '–'}</Typography>
           <Typography><strong>Adresse:</strong> {application.street}, {application.postalCode} {application.city}, {application.country}</Typography>
-          <Typography><strong>Subdomain:</strong> {application.requestedSubdomain}</Typography>
+          <Typography><strong>Gewünschter Pfad (Slug):</strong> {application.requestedSubdomain}</Typography>
           <Typography><strong>Mitglieder:</strong> {application.memberCount ?? '–'}</Typography>
           <Typography><strong>Veranstaltungen/Jahr:</strong> {application.eventsPerYear ?? '–'}</Typography>
         </Stack>

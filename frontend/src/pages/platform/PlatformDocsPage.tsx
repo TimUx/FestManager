@@ -1,8 +1,18 @@
 import { Container, Link as MuiLink, Typography } from '@mui/material';
 import { PlatformPublicLayout } from '@/components/PlatformPublicLayout';
 import { BrandingHead } from '@/components/BrandingHead';
+import { usePlatform } from '@/contexts/PlatformProvider';
+import { DEFAULT_PLATFORM } from '@/types/tenant';
+
+function repositoryDocsUrl(githubUrl?: string | null): string {
+  const base = (githubUrl ?? DEFAULT_PLATFORM.githubUrl ?? 'https://github.com/TimUx/FestSchmiede').replace(/\/$/, '');
+  return `${base}/tree/main/docs`;
+}
 
 export function PlatformDocsPage() {
+  const { platform } = usePlatform();
+  const docsUrl = repositoryDocsUrl(platform.githubUrl);
+
   return (
     <PlatformPublicLayout>
       <BrandingHead titleSuffix="Dokumentation" />
@@ -12,7 +22,7 @@ export function PlatformDocsPage() {
         </Typography>
         <Typography paragraph>
           Technische Dokumentation und Administratorhandbücher finden Sie im Projekt-Repository unter{' '}
-          <MuiLink href="https://github.com" target="_blank" rel="noopener">
+          <MuiLink href={docsUrl} target="_blank" rel="noopener noreferrer">
             docs/
           </MuiLink>
           .

@@ -21,6 +21,7 @@ export const PLATFORM_PERMISSIONS = {
   LOGS_VIEW: 'platform.logs.view',
   MONITORING_VIEW: 'platform.monitoring.view',
   BACKUPS_VIEW: 'platform.backups.view',
+  BACKUPS_MANAGE: 'platform.backups.manage',
 } as const;
 
 export const ALL_PLATFORM_PERMISSIONS: string[] = Object.values(PLATFORM_PERMISSIONS);

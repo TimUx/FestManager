@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Typography, Paper, TextField, Button, Grid, FormControlLabel, Checkbox, CircularProgress,
+  Box, Typography, Paper, TextField, Button, Grid, FormControlLabel, Checkbox, CircularProgress, Alert,
 } from '@mui/material';
 import { usePlatformAuth } from '@/contexts/PlatformAuthContext';
 import { platformApi, type PlatformLegalPageAdmin } from '@/services/platformApi';
@@ -10,6 +10,7 @@ export function PlatformLegalAdminPage() {
   const [pages, setPages] = useState<PlatformLegalPageAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [loadingExample, setLoadingExample] = useState<string | null>(null);
 
   const load = () => {
     if (!token) return;
@@ -35,6 +36,23 @@ export function PlatformLegalAdminPage() {
     }
   };
 
+  const loadExample = async (pageType: string) => {
+    if (!token) return;
+    const page = pages.find((p) => p.pageType === pageType);
+    if (!page) return;
+    const hasContent = page.contentHtml.replace(/<[^>]+>/g, '').trim().length > 0;
+    if (hasContent && !window.confirm('Der aktuelle Inhalt wird durch den Beispieltext ersetzt. Fortfahren?')) {
+      return;
+    }
+    setLoadingExample(pageType);
+    try {
+      const { contentHtml } = await platformApi.getLegalPageExample(token, pageType);
+      update(pageType, { contentHtml });
+    } finally {
+      setLoadingExample(null);
+    }
+  };
+
   const update = (pageType: string, patch: Partial<PlatformLegalPageAdmin>) => {
     setPages((prev) => prev.map((p) => (p.pageType === pageType ? { ...p, ...patch } : p)));
   };
@@ -44,10 +62,12 @@ export function PlatformLegalAdminPage() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>Rechtliche Seiten</Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Inhalte werden nur veröffentlicht, wenn Text vorhanden und „Veröffentlicht“ aktiviert ist.
-        Es werden keine Mustertexte vorgegeben.
-      </Typography>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Beim ersten Aufruf werden sinnvolle Beispieltexte (Impressum, Datenschutz, Nutzungsbedingungen)
+        vorausgefüllt — angepasst an Plattformname und Kontaktdaten aus den Einstellungen, wo vorhanden.
+        Bitte prüfen Sie alle Texte vor Veröffentlichung; es handelt sich um Mustervorschläge ohne Gewähr.
+        Links erscheinen öffentlich nur bei vorhandenem Inhalt und aktiviertem „Veröffentlicht“.
+      </Alert>
       {pages.map((page) => (
         <Paper key={page.pageType} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>{page.pageType}</Typography>
@@ -79,6 +99,14 @@ export function PlatformLegalAdminPage() {
               />
             </Grid>
             <Grid size={12}>
+              <Button
+                variant="outlined"
+                sx={{ mr: 1 }}
+                onClick={() => loadExample(page.pageType)}
+                disabled={loadingExample === page.pageType}
+              >
+                {loadingExample === page.pageType ? 'Lade Beispiel…' : 'Beispieltext laden'}
+              </Button>
               <Button variant="contained" onClick={() => save(page)} disabled={saving === page.pageType}>
                 {saving === page.pageType ? 'Speichern…' : 'Speichern'}
               </Button>

@@ -54,6 +54,9 @@ services:
       - db_password
     volumes:
       - uploads_data:/app/uploads
+      - backups_data:/app/backups
+    environment:
+      FESTSCHMIEDE_BACKUP_DIR: /app/backups
     networks:
       - internal
     deploy:
@@ -132,6 +135,7 @@ networks:
 volumes:
   postgres_data:
   uploads_data:
+  backups_data:
   letsencrypt_data:
 
 secrets:

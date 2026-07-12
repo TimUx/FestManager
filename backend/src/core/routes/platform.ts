@@ -13,9 +13,17 @@ import {
   updateTenantApplicationStatusSchema,
   approveTenantApplicationSchema,
   updatePlatformLegalPageSchema,
+  platformLegalPageTypeParamSchema,
   createPlatformTenantSchema,
   updatePlatformTenantSchema,
   applicationIdParamSchema,
+  backupFilenameParamSchema,
+  createTenantBackupSchema,
+  restoreBackupSchema,
+  createPlatformUserSchema,
+  updatePlatformUserSchema,
+  updatePlatformProfileSchema,
+  idParamSchema,
   platformSmtpUpdateSchema,
   platformTestMailSchema,
   authModeUpdateSchema,
@@ -32,17 +40,16 @@ router.post('/auth/refresh', loginRateLimiter, platformAuthController.refresh);
 router.use(authenticatePlatform, loadPlatformUser);
 
 router.get('/auth/me', platformAuthController.me);
+router.put(
+  '/auth/profile',
+  validateBody(updatePlatformProfileSchema),
+  platformAuthController.updateProfile
+);
 
 router.get(
   '/dashboard',
   requirePlatformPermission(PLATFORM_PERMISSIONS.SYSTEM_MANAGE, PLATFORM_PERMISSIONS.ALL),
   platformController.dashboard
-);
-
-router.get(
-  '/monitoring',
-  requirePlatformPermission(PLATFORM_PERMISSIONS.MONITORING_VIEW, PLATFORM_PERMISSIONS.ALL),
-  platformController.monitoring
 );
 
 router.get(
@@ -55,6 +62,42 @@ router.get(
   '/backups',
   requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_VIEW, PLATFORM_PERMISSIONS.ALL),
   platformController.backups
+);
+router.post(
+  '/backups/full',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_MANAGE, PLATFORM_PERMISSIONS.SYSTEM_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  platformController.createFullBackup
+);
+router.post(
+  '/backups/tenant',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_MANAGE, PLATFORM_PERMISSIONS.SYSTEM_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  validateBody(createTenantBackupSchema),
+  platformController.createTenantBackup
+);
+router.post(
+  '/backups/:filename/validate',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_VIEW, PLATFORM_PERMISSIONS.ALL),
+  validateParams(backupFilenameParamSchema),
+  platformController.validateBackup
+);
+router.post(
+  '/backups/:filename/restore',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_MANAGE, PLATFORM_PERMISSIONS.SYSTEM_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  validateParams(backupFilenameParamSchema),
+  validateBody(restoreBackupSchema),
+  platformController.restoreBackup
+);
+router.get(
+  '/backups/:filename/download',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_VIEW, PLATFORM_PERMISSIONS.ALL),
+  validateParams(backupFilenameParamSchema),
+  platformController.downloadBackup
+);
+router.delete(
+  '/backups/:filename',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.BACKUPS_MANAGE, PLATFORM_PERMISSIONS.SYSTEM_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  validateParams(backupFilenameParamSchema),
+  platformController.deleteBackup
 );
 
 // Mandanten
@@ -179,7 +222,15 @@ router.get(
 router.post(
   '/users',
   requirePlatformPermission(PLATFORM_PERMISSIONS.USERS_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  validateBody(createPlatformUserSchema),
   platformController.createPlatformUser
+);
+router.put(
+  '/users/:id',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.USERS_MANAGE, PLATFORM_PERMISSIONS.ALL),
+  validateParams(idParamSchema),
+  validateBody(updatePlatformUserSchema),
+  platformController.updatePlatformUser
 );
 
 // Mandantenbewerbungen
@@ -227,9 +278,16 @@ router.get(
   requirePlatformPermission(PLATFORM_PERMISSIONS.SETTINGS_PLATFORM, PLATFORM_PERMISSIONS.ALL),
   platformController.listLegalPages
 );
+router.get(
+  '/legal-pages/:pageType/example',
+  requirePlatformPermission(PLATFORM_PERMISSIONS.SETTINGS_PLATFORM, PLATFORM_PERMISSIONS.ALL),
+  validateParams(platformLegalPageTypeParamSchema),
+  platformController.getLegalPageExample
+);
 router.put(
   '/legal-pages/:pageType',
   requirePlatformPermission(PLATFORM_PERMISSIONS.SETTINGS_PLATFORM, PLATFORM_PERMISSIONS.ALL),
+  validateParams(platformLegalPageTypeParamSchema),
   validateBody(updatePlatformLegalPageSchema),
   platformController.updateLegalPage
 );

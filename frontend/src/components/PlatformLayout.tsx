@@ -16,7 +16,6 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import GavelIcon from '@mui/icons-material/Gavel';
 import LanguageIcon from '@mui/icons-material/Language';
 import EmailIcon from '@mui/icons-material/Email';
-import MemoryIcon from '@mui/icons-material/Memory';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePlatformAuth } from '@/contexts/PlatformAuthContext';
 import { usePlatform } from '@/contexts/PlatformProvider';
@@ -28,7 +27,6 @@ const NAV = [
   { path: '/platform/mandanten', label: 'Mandanten', icon: <BusinessIcon /> },
   { path: '/platform/bewerbungen', label: 'Mandantenanträge', icon: <AssignmentIcon /> },
   { path: '/platform/benutzer', label: 'Benutzer', icon: <PeopleIcon /> },
-  { path: '/platform/monitoring', label: 'Monitoring', icon: <MemoryIcon /> },
   { path: '/platform/health', label: 'Health', icon: <MonitorHeartIcon /> },
   { path: '/platform/logs', label: 'Logs', icon: <ArticleIcon /> },
   { path: '/platform/backups', label: 'Backups', icon: <BackupIcon /> },
@@ -81,9 +79,17 @@ export function PlatformLayout({ children }: { children: React.ReactNode }) {
           <Typography variant="body2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
             {user?.firstName} {user?.lastName}
           </Typography>
-          <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: 'primary.dark' }}>
-            {user?.firstName?.[0]}
-          </Avatar>
+          <IconButton
+            color="inherit"
+            component={Link}
+            to="/platform/profil"
+            aria-label="Profil"
+            sx={{ mr: 0.5 }}
+          >
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.dark' }}>
+              {user?.firstName?.[0]}
+            </Avatar>
+          </IconButton>
           <IconButton color="inherit" onClick={() => { logout(); navigate('/platform/login'); }}>
             <LogoutIcon />
           </IconButton>

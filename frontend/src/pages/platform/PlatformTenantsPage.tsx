@@ -28,7 +28,6 @@ export function PlatformTenantsPage() {
   const [form, setForm] = useState({
     name: '',
     slug: '',
-    subdomain: '',
     email: '',
     contactName: '',
     phone: '',
@@ -46,9 +45,10 @@ export function PlatformTenantsPage() {
 
   const handleCreate = async () => {
     if (!token) return;
-    await platformApi.createTenant(token, form);
+    const slug = form.slug.trim();
+    await platformApi.createTenant(token, { ...form, slug });
     setShowCreate(false);
-    setForm({ name: '', slug: '', subdomain: '', email: '', contactName: '', phone: '' });
+    setForm({ name: '', slug: '', email: '', contactName: '', phone: '' });
     load();
   };
 
@@ -86,8 +86,7 @@ export function PlatformTenantsPage() {
             <TextField label="Ansprechpartner" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
             <TextField label="E-Mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <TextField label="Telefon" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <TextField label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-            <TextField label="Subdomain" value={form.subdomain} onChange={(e) => setForm({ ...form, subdomain: e.target.value })} />
+            <TextField label="Slug (URL-Pfad)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} helperText="z. B. mein-verein" />
             <Button variant="contained" onClick={handleCreate}>Erstellen</Button>
           </Box>
         </Paper>
@@ -111,7 +110,7 @@ export function PlatformTenantsPage() {
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
-              <TableCell>Subdomain</TableCell>
+              <TableCell>Pfad (Slug)</TableCell>
               <TableCell>Ansprechpartner</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Benutzer</TableCell>
@@ -126,7 +125,7 @@ export function PlatformTenantsPage() {
             ) : items.map((t) => (
               <TableRow key={t.id} hover>
               <TableCell>{t.name}</TableCell>
-              <TableCell>{t.subdomain}</TableCell>
+              <TableCell>{t.slug}</TableCell>
               <TableCell>{t.contactName ?? '–'}</TableCell>
                 <TableCell><Chip size="small" label={t.status} color={STATUS_COLORS[t.status] ?? 'default'} /></TableCell>
                 <TableCell>{t.stats?.activeUsers ?? '–'}</TableCell>

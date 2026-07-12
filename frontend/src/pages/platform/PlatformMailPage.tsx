@@ -6,6 +6,13 @@ import {
 import EmailIcon from '@mui/icons-material/Email';
 import { usePlatformAuth } from '@/contexts/PlatformAuthContext';
 import { platformApi } from '@/services/platformApi';
+import {
+  SMTP_TLS_MODE_OPTIONS,
+  smtpConfigFromTlsMode,
+  smtpTlsFromPort,
+  smtpTlsModeFromConfig,
+  type SmtpTlsMode,
+} from '@/utils/smtpTlsMode';
 
 const AUTH_MODES = [
   { value: 'passwordless_only', label: 'Nur passwortlos' },
@@ -23,7 +30,7 @@ export function PlatformMailPage() {
   const [saving, setSaving] = useState(false);
   const [testRecipient, setTestRecipient] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [connectionResult, setConnectionResult] = useState<string | null>(null);
+  const [connectionResult, setConnectionResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const load = async () => {
     if (!token) return;
@@ -74,9 +81,22 @@ export function PlatformMailPage() {
   const handleTestConnection = async () => {
     if (!token) return;
     setConnectionResult(null);
-    const result = await platformApi.testMailConnection(token);
-    setConnectionResult(result.message);
+    const payload: Record<string, unknown> = { ...smtp };
+    if (!payload.pass) delete payload.pass;
+    const result = await platformApi.testMailConnection(token, payload);
+    setConnectionResult(result);
   };
+
+  const handleTlsModeChange = (mode: SmtpTlsMode) => {
+    setSmtp({ ...smtp, ...smtpConfigFromTlsMode(mode) });
+  };
+
+  const handlePortChange = (port: number) => {
+    const tls = smtpTlsFromPort(port);
+    setSmtp({ ...smtp, port, secure: tls.secure, useTls: tls.useTls });
+  };
+
+  const tlsMode = smtpTlsModeFromConfig(smtp.secure, smtp.useTls, smtp.port);
 
   const handleSendTest = async () => {
     if (!token || !testRecipient) return;
@@ -117,20 +137,37 @@ export function PlatformMailPage() {
               <Grid size={{ xs: 12, md: 8 }}>
                 <TextField fullWidth label="SMTP Host" value={String(smtp.host ?? '')} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} />
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField fullWidth type="number" label="Port" value={String(smtp.port ?? 587)} onChange={(e) => setSmtp({ ...smtp, port: Number(e.target.value) })} />
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Verschlüsselung"
+                  value={tlsMode}
+                  onChange={(e) => handleTlsModeChange(e.target.value as SmtpTlsMode)}
+                  helperText={SMTP_TLS_MODE_OPTIONS.find((o) => o.value === tlsMode)?.helper}
+                >
+                  {SMTP_TLS_MODE_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Port"
+                  value={String(smtp.port ?? 587)}
+                  onChange={(e) => handlePortChange(Number(e.target.value))}
+                  helperText="Wird beim Verschlüsselungsmodus automatisch gesetzt"
+                />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField fullWidth label="Benutzer" value={String(smtp.user ?? '')} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField fullWidth type="password" label="Passwort" placeholder={smtp.passConfigured ? '••••••••' : ''} onChange={(e) => setSmtp({ ...smtp, pass: e.target.value })} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormControlLabel control={<Switch checked={Boolean(smtp.secure)} onChange={(e) => setSmtp({ ...smtp, secure: e.target.checked })} />} label="SSL (Port 465)" />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormControlLabel control={<Switch checked={smtp.useTls !== false} onChange={(e) => setSmtp({ ...smtp, useTls: e.target.checked })} />} label="STARTTLS" />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField fullWidth label="Absendername" value={String(smtp.senderName ?? '')} onChange={(e) => setSmtp({ ...smtp, senderName: e.target.value })} />
@@ -149,7 +186,11 @@ export function PlatformMailPage() {
               <Button variant="contained" onClick={handleSaveSmtp} disabled={saving}>Speichern</Button>
               <Button variant="outlined" onClick={() => void handleTestConnection()}>Verbindung testen</Button>
             </Stack>
-            {connectionResult && <Alert severity="info" sx={{ mt: 2 }}>{connectionResult}</Alert>}
+            {connectionResult && (
+              <Alert severity={connectionResult.ok ? 'success' : 'error'} sx={{ mt: 2 }}>
+                {connectionResult.message}
+              </Alert>
+            )}
           </Paper>
 
           <Paper sx={{ p: 3 }}>

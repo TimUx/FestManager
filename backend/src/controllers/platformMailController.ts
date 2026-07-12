@@ -32,9 +32,10 @@ export const platformMailController = {
     }
   },
 
-  async testConnection(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
+  async testConnection(req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
-      res.json(await mailService.testConnection());
+      const override = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : undefined;
+      res.json(await mailService.testConnection(override));
     } catch (err) {
       next(err);
     }

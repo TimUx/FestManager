@@ -267,7 +267,7 @@ export const createPlatformTenantSchema = z.object({
   name: z.string().min(2, 'Name erforderlich').max(200),
   shortName: z.string().max(64).optional().nullable(),
   slug: platformTenantSlugSchema,
-  subdomain: platformTenantSlugSchema,
+  subdomain: platformTenantSlugSchema.optional(),
   status: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED']).optional(),
   contactName: z.string().max(120).optional().nullable(),
   email: optionalEmailSchema,
@@ -292,10 +292,57 @@ export const updatePlatformLegalPageSchema = z.object({
   contentHtml: z.string().max(200_000).optional(),
 });
 
+export const platformLegalPageTypeParamSchema = z.object({
+  pageType: z.enum(['impressum', 'datenschutz', 'nutzungsbedingungen']),
+});
+
 export const legalSlugParamSchema = z.object({
   slug: z.string().min(1).max(100),
 });
 
 export const applicationIdParamSchema = z.object({
   id: z.string().uuid(),
+});
+
+export const backupFilenameParamSchema = z.object({
+  filename: z.string().min(1).max(200).regex(/^[a-zA-Z0-9._-]+\.(sql|json)\.gz$/),
+});
+
+export const createTenantBackupSchema = z.object({
+  tenantId: z.string().uuid(),
+});
+
+export const restoreBackupSchema = z.object({
+  confirm: z.literal(true),
+});
+
+export const createPlatformUserSchema = z.object({
+  email: z.string().email('Ungültige E-Mail-Adresse'),
+  password: z.string().min(8, 'Mindestens 8 Zeichen'),
+  firstName: z.string().min(1, 'Vorname erforderlich').max(100),
+  lastName: z.string().min(1, 'Nachname erforderlich').max(100),
+});
+
+export const updatePlatformUserSchema = z.object({
+  email: z.string().email('Ungültige E-Mail-Adresse').optional(),
+  password: z.string().min(8, 'Mindestens 8 Zeichen').optional(),
+  firstName: z.string().min(1, 'Vorname erforderlich').max(100).optional(),
+  lastName: z.string().min(1, 'Nachname erforderlich').max(100).optional(),
+  active: z.boolean().optional(),
+});
+
+export const updatePlatformProfileSchema = z.object({
+  firstName: z.string().min(1, 'Vorname erforderlich').max(100).optional(),
+  lastName: z.string().min(1, 'Nachname erforderlich').max(100).optional(),
+  email: z.string().email('Ungültige E-Mail-Adresse').optional(),
+  currentPassword: z.string().min(1).optional(),
+  newPassword: z.string().min(8, 'Mindestens 8 Zeichen').optional(),
+}).superRefine((data, ctx) => {
+  if (data.newPassword && !data.currentPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Aktuelles Passwort erforderlich',
+      path: ['currentPassword'],
+    });
+  }
 });

@@ -101,8 +101,9 @@ export function PlatformApplyPage() {
         <BrandingHead titleSuffix="Mandant beantragen" path="/mandant-beantragen" />
         <MarketingSection title="Mandant beantragen">
           <Alert severity="info">
-            Bewerbungen sind derzeit nicht möglich. Bitte nutzen Sie die{' '}
-            <Link to="/kontakt">Kontaktseite</Link>.
+            Bewerbungen sind derzeit nicht freigeschaltet. Plattformadministratoren können sie unter{' '}
+            <strong>Plattform → Einstellungen → Mandantenbewerbungen aktiv</strong> einschalten.
+            Alternativ erreichen Sie uns über die <Link to="/kontakt">Kontaktseite</Link>.
           </Alert>
         </MarketingSection>
       </PlatformPublicLayout>

@@ -8,8 +8,8 @@ import { PlatformTenantDetailPage } from '@/pages/platform/PlatformTenantDetailP
 import { PlatformSettingsPage } from '@/pages/platform/PlatformSettingsPage';
 import { PlatformMailPage } from '@/pages/platform/PlatformMailPage';
 import { PlatformUsersPage } from '@/pages/platform/PlatformUsersPage';
+import { PlatformProfilePage } from '@/pages/platform/PlatformProfilePage';
 import { PlatformLogsPage } from '@/pages/platform/PlatformLogsPage';
-import { PlatformMonitoringPage } from '@/pages/platform/PlatformMonitoringPage';
 import { PlatformHealthPage } from '@/pages/platform/PlatformHealthPage';
 import { PlatformBackupsPage } from '@/pages/platform/PlatformBackupsPage';
 import { PlatformApplicationsPage } from '@/pages/platform/PlatformApplicationsPage';
@@ -39,10 +39,11 @@ export function AppRoutes() {
           <Route path="rechtliches" element={<PlatformLegalAdminPage />} />
           <Route path="domains" element={<PlatformDomainsPage />} />
           <Route path="benutzer" element={<PlatformUsersPage />} />
+          <Route path="profil" element={<PlatformProfilePage />} />
           <Route path="einstellungen" element={<PlatformSettingsPage />} />
           <Route path="email" element={<PlatformMailPage />} />
           <Route path="logs" element={<PlatformLogsPage />} />
-          <Route path="monitoring" element={<PlatformMonitoringPage />} />
+          <Route path="monitoring" element={<Navigate to="/platform" replace />} />
           <Route path="health" element={<PlatformHealthPage />} />
           <Route path="backups" element={<PlatformBackupsPage />} />
         </Route>

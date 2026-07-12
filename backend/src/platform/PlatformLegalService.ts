@@ -1,5 +1,11 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import {
+  buildPlatformLegalExampleContent,
+  buildPlatformLegalTemplateContext,
+  isPlatformLegalPageType,
+  renderPlatformLegalTemplate,
+} from './platformLegalTemplates';
 
 const DEFAULT_PAGES = [
   { pageType: 'impressum', title: 'Impressum', slug: 'impressum' },
@@ -13,20 +19,37 @@ function normalizeSlug(slug: string): string {
 
 export const platformLegalService = {
   async ensureDefaults(): Promise<void> {
+    const context = await buildPlatformLegalTemplateContext();
     for (const page of DEFAULT_PAGES) {
-      await prisma.platformLegalPage.upsert({
+      const contentHtml = renderPlatformLegalTemplate(page.pageType, context);
+      const existing = await prisma.platformLegalPage.findUnique({
         where: { pageType: page.pageType },
-        update: {},
-        create: {
-          pageType: page.pageType,
-          title: page.title,
-          slug: page.slug,
-          enabled: true,
-          published: false,
-          contentHtml: '',
-        },
       });
+      if (!existing) {
+        await prisma.platformLegalPage.create({
+          data: {
+            pageType: page.pageType,
+            title: page.title,
+            slug: page.slug,
+            enabled: true,
+            published: false,
+            contentHtml,
+          },
+        });
+      } else if (!existing.contentHtml.trim()) {
+        await prisma.platformLegalPage.update({
+          where: { pageType: page.pageType },
+          data: { contentHtml },
+        });
+      }
     }
+  },
+
+  async getExampleContent(pageType: string): Promise<string> {
+    if (!isPlatformLegalPageType(pageType)) {
+      throw new AppError(404, 'Rechtsseite nicht gefunden');
+    }
+    return buildPlatformLegalExampleContent(pageType) as Promise<string>;
   },
 
   async listPublicLinks(): Promise<Array<{ slug: string; title: string; pageType: string }>> {

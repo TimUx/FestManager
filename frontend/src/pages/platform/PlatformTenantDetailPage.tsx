@@ -27,7 +27,6 @@ type TenantForm = {
   name: string;
   shortName: string;
   slug: string;
-  subdomain: string;
   contactName: string;
   email: string;
   phone: string;
@@ -46,7 +45,6 @@ function tenantToForm(tenant: PlatformTenant): TenantForm {
     name: tenant.name,
     shortName: tenant.shortName ?? '',
     slug: tenant.slug,
-    subdomain: tenant.subdomain,
     contactName: tenant.contactName ?? '',
     email: tenant.email ?? '',
     phone: tenant.phone ?? '',
@@ -63,11 +61,12 @@ function tenantToForm(tenant: PlatformTenant): TenantForm {
 
 function formToPayload(form: TenantForm): UpdatePlatformTenantPayload {
   const emptyToNull = (v: string) => (v.trim() === '' ? null : v.trim());
+  const slug = form.slug.trim();
   return {
     name: form.name.trim(),
     shortName: emptyToNull(form.shortName),
-    slug: form.slug.trim(),
-    subdomain: form.subdomain.trim(),
+    slug,
+    subdomain: slug,
     contactName: emptyToNull(form.contactName),
     email: emptyToNull(form.email),
     phone: emptyToNull(form.phone),
@@ -250,11 +249,8 @@ export function PlatformTenantDetailPage() {
             <Typography variant="h6" gutterBottom>Technisch</Typography>
             {editing ? (
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Slug" required value={form.slug} onChange={(e) => setField('slug', e.target.value)} helperText="URL-Pfad, z. B. mein-verein" />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Subdomain" required value={form.subdomain} onChange={(e) => setField('subdomain', e.target.value)} helperText="Subdomain für Mandanten-Zugriff" />
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth label="Slug (URL-Pfad)" required value={form.slug} onChange={(e) => setField('slug', e.target.value)} helperText="z. B. mein-verein → /mein-verein/…" />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Sprache" value={form.locale} onChange={(e) => setField('locale', e.target.value)} />
@@ -274,8 +270,7 @@ export function PlatformTenantDetailPage() {
               </Grid>
             ) : (
               <>
-                <InfoRow label="Slug" value={tenant.slug} />
-                <InfoRow label="Subdomain" value={tenant.subdomain} />
+                <InfoRow label="Pfad (Slug)" value={tenant.slug} />
                 <InfoRow label="Sprache" value={tenant.locale} />
                 <InfoRow label="Zeitzone" value={tenant.timezone} />
                 <InfoRow label="Währung" value={tenant.currency} />

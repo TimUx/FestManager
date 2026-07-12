@@ -54,10 +54,12 @@ services:
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
       LOG_FORMAT: ${LOG_FORMAT:-text}
+      FESTSCHMIEDE_BACKUP_DIR: /app/backups
     ports:
       - "3001:3001"
     volumes:
       - uploads_data:/app/uploads
+      - backups_data:/app/backups
     networks:
       - internal
     healthcheck:
@@ -106,6 +108,7 @@ services:
 volumes:
   postgres_data:
   uploads_data:
+  backups_data:
 
 networks:
   internal:

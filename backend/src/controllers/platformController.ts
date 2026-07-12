@@ -4,21 +4,20 @@ import { platformAuthService } from '../services/platformAuthService';
 import {
   platformDashboardService,
   platformTenantAdminService,
-  platformMonitoringService,
   impersonationService,
   platformSettingsService,
   auditService,
   healthService,
   tenantService,
   tenantApplicationService,
+  reloadPlatformContextFromSettings,
+  platformBackupService,
 } from '../platform/bootstrap';
 import { platformLegalService } from '../platform/PlatformLegalService';
+import { platformUserAdminService } from '../platform/PlatformUserAdminService';
 import { platformContext } from '../platform/bootstrap';
 import { platformDomainService } from '../platform/PlatformDomainService';
-import { platformUserRepository } from '../repositories/platformUserRepository';
 import { AppError } from '../middleware/errorHandler';
-import bcrypt from 'bcryptjs';
-import { ALL_PLATFORM_PERMISSIONS } from '../platform/platformPermissions';
 
 export const platformAuthController = {
   async login(req: PlatformAuthRequest, res: Response, next: NextFunction) {
@@ -62,20 +61,21 @@ export const platformAuthController = {
       next(err);
     }
   },
+
+  async updateProfile(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.platformUser) throw new AppError(401, 'Nicht authentifiziert');
+      res.json(await platformUserAdminService.updateProfile(req.platformUser.userId, req.body));
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 export const platformController = {
   async dashboard(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
       res.json(await platformDashboardService.getStats());
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  async monitoring(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
-    try {
-      res.json(await platformMonitoringService.getOverview());
     } catch (err) {
       next(err);
     }
@@ -229,6 +229,7 @@ export const platformController = {
         req.body,
         req.platformUser?.userId
       );
+      await reloadPlatformContextFromSettings();
       res.json(settings);
     } catch (err) {
       next(err);
@@ -248,19 +249,7 @@ export const platformController = {
 
   async listPlatformUsers(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
-      const users = await platformUserRepository.findAll();
-      res.json({
-        items: users.map((u: { id: string; email: string; firstName: string; lastName: string; active: boolean; mfaEnabled: boolean; lastLoginAt: Date | null; createdAt: Date }) => ({
-          id: u.id,
-          email: u.email,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          active: u.active,
-          mfaEnabled: u.mfaEnabled,
-          lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
-          createdAt: u.createdAt.toISOString(),
-        })),
-      });
+      res.json({ items: await platformUserAdminService.listUsers() });
     } catch (err) {
       next(err);
     }
@@ -268,28 +257,22 @@ export const platformController = {
 
   async createPlatformUser(req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
-      const { email, password, firstName, lastName } = req.body as {
-        email: string;
-        password: string;
-        firstName: string;
-        lastName: string;
-      };
-      const existing = await platformUserRepository.findByEmail(email);
-      if (existing) throw new AppError(409, 'E-Mail bereits registriert');
-      const passwordHash = await bcrypt.hash(password, 12);
-      const user = await platformUserRepository.create({
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        permissions: ALL_PLATFORM_PERMISSIONS,
-      });
-      res.status(201).json({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      });
+      const user = await platformUserAdminService.createUser(req.body, req.platformUser!.userId);
+      res.status(201).json(user);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updatePlatformUser(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      res.json(
+        await platformUserAdminService.updateUser(
+          req.params.id as string,
+          req.body,
+          req.platformUser!.userId
+        )
+      );
     } catch (err) {
       next(err);
     }
@@ -297,12 +280,62 @@ export const platformController = {
 
   async backups(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
-      res.json({
-        strategies: ['full', 'tenant'],
-        lastFullBackup: null,
-        restoreAvailable: false,
-        note: 'Backup/Restore-Automatisierung in Phase 4+',
-      });
+      res.json(await platformBackupService.getOverview());
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createFullBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      res.status(201).json(await platformBackupService.createFullBackup(req.platformUser!.userId));
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createTenantBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.body as { tenantId: string };
+      res.status(201).json(
+        await platformBackupService.createTenantBackup(tenantId, req.platformUser!.userId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async validateBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      res.json(await platformBackupService.validateBackup(req.params.filename as string));
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async restoreBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      res.json(
+        await platformBackupService.restoreBackup(req.params.filename as string, req.platformUser!.userId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async downloadBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      const filePath = platformBackupService.resolveDownloadPath(req.params.filename as string);
+      res.download(filePath, req.params.filename as string);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteBackup(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      await platformBackupService.deleteBackup(req.params.filename as string, req.platformUser!.userId);
+      res.status(204).send();
     } catch (err) {
       next(err);
     }
@@ -407,6 +440,16 @@ export const platformController = {
     }
   },
 
+  async getLegalPageExample(req: PlatformAuthRequest, res: Response, next: NextFunction) {
+    try {
+      res.json({
+        contentHtml: await platformLegalService.getExampleContent(req.params.pageType as string),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async getDomains(_req: PlatformAuthRequest, res: Response, next: NextFunction) {
     try {
       const platform = platformContext.current();
@@ -416,7 +459,7 @@ export const platformController = {
         baseDomain: domains.platformDomain,
         allowedDomains: platform.allowedDomains,
         allowedOrigins: domains.allowedOrigins,
-        note: 'Domainwerte werden über die Infrastruktur-Konfiguration (ENV/Docker) gesetzt und sind hier nur zur Anzeige.',
+        note: 'Pfad-basiertes Mandanten-Routing: Mandanten sind unter https://<app-domain>/<slug>/ erreichbar. Werte werden über ENV/Docker gesetzt und sind hier schreibgeschützt.',
       });
     } catch (err) {
       next(err);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { resolveAppVersion } from '../config/version';
 
 const menuMetadataSchema = z.object({
   id: z.string(),
@@ -164,4 +165,4 @@ export const MODULE_STATUS_LABELS: Record<ModuleStatus, string> = {
   FAILED: 'Fehler',
 };
 
-export const CORE_VERSION = '2.2.0';
+export const CORE_VERSION = resolveAppVersion();

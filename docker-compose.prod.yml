@@ -60,6 +60,7 @@ services:
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-2}
       LOG_FORMAT: ${LOG_FORMAT:-json}
       REDIS_URL: ${REDIS_URL:-}
+      FESTSCHMIEDE_BACKUP_DIR: /app/backups
     networks:
       - internal
     healthcheck:

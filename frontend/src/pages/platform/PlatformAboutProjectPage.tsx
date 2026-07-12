@@ -20,9 +20,10 @@ export function PlatformAboutProjectPage() {
             soll diese Arbeit erleichtern – ohne die Eigenheiten ehrenamtlicher Organisationen zu verlieren.
           </Typography>
           <Typography>
-            Die Plattform ist mandantenfähig: Jede Organisation erhält eine eigene Instanz unter einer
-            Subdomain und kann Module nach Bedarf aktivieren. So bleibt FestSchmiede überschaubar für kleine
-            Feste und gleichzeitig erweiterbar für größere Veranstaltungen.
+            Die Plattform ist mandantenfähig: Jede Organisation erhält einen eigenen Pfad unter der
+            Anwendungs-Domain (z.&nbsp;B. <code>/mein-verein/</code>) und kann Module nach Bedarf aktivieren.
+            So bleibt FestSchmiede überschaubar für kleine Feste und gleichzeitig erweiterbar für größere
+            Veranstaltungen.
           </Typography>
         </Stack>
       </MarketingSection>

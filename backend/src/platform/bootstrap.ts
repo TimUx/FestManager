@@ -49,6 +49,7 @@ import { createPlatformContextMiddleware, createPlatformPublicMiddleware } from 
 import { createTenantContextMiddleware } from '../middleware/tenantContext';
 import { createTenantController } from '../controllers/tenantController';
 import { PlatformDashboardService, PlatformMonitoringService } from './PlatformDashboardService';
+import { PlatformBackupService } from './backup/PlatformBackupService';
 import { PlatformTenantAdminService } from './PlatformTenantAdminService';
 import { TenantApplicationService } from './TenantApplicationService';
 import { ImpersonationService } from './ImpersonationService';
@@ -91,6 +92,7 @@ export let platformMonitoringServiceInstance!: PlatformMonitoringService;
 export let platformTenantAdminServiceInstance!: PlatformTenantAdminService;
 export let tenantApplicationServiceInstance!: TenantApplicationService;
 export let impersonationServiceInstance!: ImpersonationService;
+export let platformBackupServiceInstance!: PlatformBackupService;
 
 let tenantInfrastructureInitialized = false;
 
@@ -169,8 +171,13 @@ export function bootstrapPlatform(): void {
     tenantResolverInstance
   );
 
-  platformDashboardServiceInstance = new PlatformDashboardService(platformContextInstance);
+  platformBackupServiceInstance = new PlatformBackupService(auditServiceInstance);
   platformMonitoringServiceInstance = new PlatformMonitoringService();
+  platformDashboardServiceInstance = new PlatformDashboardService(
+    platformContextInstance,
+    platformBackupServiceInstance,
+    platformMonitoringServiceInstance
+  );
   platformTenantAdminServiceInstance = new PlatformTenantAdminService(
     tenantServiceInstance,
     tenantRepository,
@@ -239,6 +246,12 @@ export async function initializeTenantInfrastructure(): Promise<void> {
   }
   platformContextInstance.initialize(merged);
 
+  await prisma.platformSettings.upsert({
+    where: { key: 'platform.version' },
+    update: { value: config.coreVersion },
+    create: { key: 'platform.version', value: config.coreVersion },
+  });
+
   const networkSettings = await platformSettingsServiceInstance.getNamespace('platform.network');
   const effectiveNetworkSettings = platformDomainService.resolveCorsNetworkSettings(
     networkSettings,
@@ -298,6 +311,25 @@ export async function initializeTenantInfrastructure(): Promise<void> {
   tenantInfrastructureInitialized = true;
 }
 
+/** Lädt Plattform-Kontext aus DB/ENV neu (z. B. nach Einstellungsänderung). */
+export async function reloadPlatformContextFromSettings(): Promise<void> {
+  const platformData = await platformSettingsServiceInstance.loadContextData(config.coreVersion);
+  const domainConfig = platformDomainService.loadFromEnv();
+  const merged = platformDomainService.applyToContext(platformData, domainConfig);
+  merged.baseDomain = config.multiTenant.baseDomain;
+  if (!merged.allowedDomains.includes('localhost')) {
+    merged.allowedDomains = [...merged.allowedDomains, 'localhost'];
+  }
+  platformContextInstance.initialize(merged);
+
+  const networkSettings = await platformSettingsServiceInstance.getNamespace('platform.network');
+  const effectiveNetworkSettings = platformDomainService.resolveCorsNetworkSettings(
+    networkSettings,
+    domainConfig
+  );
+  corsPolicy.bindFromPlatform(merged, effectiveNetworkSettings);
+}
+
 export function createTenantMiddlewareStack() {
   return [
     createPlatformContextMiddleware(platformContextInstance),
@@ -340,3 +372,4 @@ export const platformMonitoringService = platformMonitoringServiceInstance;
 export const platformTenantAdminService = platformTenantAdminServiceInstance;
 export const tenantApplicationService = tenantApplicationServiceInstance;
 export const impersonationService = impersonationServiceInstance;
+export const platformBackupService = platformBackupServiceInstance;
