@@ -3,6 +3,14 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.4.15 - 2026-07-12
+
+### Behoben
+
+- **Installer Reparatur:** Health-Check fällt auf interne Prüfung zurück, wenn HTTPS über die Domain vom Server selbst nicht erreichbar ist (NAT/Hairpin).
+
+---
+
 ## 2.4.14 - 2026-07-12
 
 ### Behoben

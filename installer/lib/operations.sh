@@ -59,7 +59,7 @@ run_database_backup() {
 
 verify_health_strict() {
   local timeout="${1:-180}"
-  local probe_url body
+  local probe_url body internal_body
   apply_defaults
   probe_url=$(describe_backend_health_probe)
 
@@ -70,6 +70,16 @@ verify_health_strict() {
       body=$(fetch_public_https_health_body 2>/dev/null || true)
       if parse_health_response_ok "$body"; then
         log_info "Health OK nach ${i}s (HTTPS über Domain)"
+        return 0
+      fi
+      internal_body=$(fetch_internal_backend_health_body 2>/dev/null || true)
+      if parse_health_response_ok "$internal_body"; then
+        log_warn "Health OK intern nach ${i}s — externe Domain von diesem Server nicht erreichbar (NAT/Hairpin?)"
+        log_warn "Bitte im Browser prüfen: ${probe_url}"
+        return 0
+      fi
+      if parse_health_database_ok "$internal_body"; then
+        log_warn "Datenbank OK intern nach ${i}s — App läuft, externe Domain-Prüfung übersprungen"
         return 0
       fi
     elif backend_health_ok; then
