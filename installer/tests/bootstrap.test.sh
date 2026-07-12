@@ -44,8 +44,9 @@ default_dir=$(
 [[ "$default_dir" == "/custom/default" ]] && pass "default install dir override" || fail "default install dir override"
 
 # Version
+expected_version=$(grep -E '^INSTALLER_VERSION=' "${ROOT}/installer/lib/common.sh" | cut -d'"' -f2)
 out=$("${ROOT}/install.sh" --version 2>&1)
-echo "$out" | grep -q "2.4.0" && pass "--version" || fail "--version"
+echo "$out" | grep -q "$expected_version" && pass "--version" || fail "--version"
 
 # Lokaler Modus erkennt Repository
 [[ -f "${ROOT}/installer/install.sh" ]] && pass "local installer exists" || fail "local installer exists"
