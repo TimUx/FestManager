@@ -14,11 +14,7 @@ const credentialLoginSchema = z
         path: ['identifier'],
       });
     }
-  })
-  .transform((data) => ({
-    identifier: (data.identifier?.trim() || data.email?.trim())!,
-    password: data.password,
-  }));
+  });
 
 export const loginSchema = credentialLoginSchema;
 export const platformLoginSchema = credentialLoginSchema;
