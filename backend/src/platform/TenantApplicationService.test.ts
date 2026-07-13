@@ -26,10 +26,14 @@ vi.mock('./notifications/platformNotificationService', () => ({
 }));
 
 vi.mock('./TenantOnboardingService', () => ({
-  tenantOnboardingService: { onboardNewTenant: vi.fn() },
+  tenantOnboardingService: {
+    onboardNewTenant: vi.fn(),
+    ensureAdministrator: vi.fn(),
+  },
 }));
 
 import { prisma } from '../config/database';
+import { tenantOnboardingService } from './TenantOnboardingService';
 
 describe('TenantApplicationService', () => {
   const platformContext = {
@@ -41,6 +45,8 @@ describe('TenantApplicationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(tenantOnboardingService.ensureAdministrator).mockResolvedValue(null);
+    vi.mocked(tenantOnboardingService.onboardNewTenant).mockResolvedValue(null);
     service = new TenantApplicationService(
       platformContext as never,
       tenantAdmin as never,

@@ -3,6 +3,16 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.4.24 - 2026-07-13
+
+### Behoben
+
+- **CI:** ESLint-Warnung (ungenutzte Variable) in `platformNotificationService` behoben.
+- **CI:** Unit-Tests für Mandanten-Onboarding und -Anträge an `ensureAdministrator`-Mock angepasst.
+- **CI:** E2E-Test der Landingpage an Burger-Menü-Navigation angepasst.
+
+---
+
 ## 2.4.23 - 2026-07-13
 
 ### Hinzugefügt

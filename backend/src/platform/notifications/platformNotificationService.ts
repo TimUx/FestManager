@@ -147,7 +147,7 @@ export const platformNotificationService = {
     tenantSlug: string;
     resent?: boolean;
   }): Promise<void> {
-    const { admin, organizationName, adminUrl, publicUrl, tenantSlug, resent = false } = params;
+    const { admin, organizationName, adminUrl, publicUrl, resent = false } = params;
     const loginHint = admin.username
       ? `Benutzername: ${admin.username}\nE-Mail: ${admin.email}`
       : `E-Mail: ${admin.email}`;

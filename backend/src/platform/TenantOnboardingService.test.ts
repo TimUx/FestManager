@@ -60,6 +60,7 @@ describe('tenantOnboardingService', () => {
     vi.clearAllMocks();
     vi.mocked(prisma.role.findUnique).mockResolvedValue({ id: 'role-admin', name: 'ADMIN', permissions: [] } as never);
     vi.mocked(prisma.clubSettings.upsert).mockResolvedValue({} as never);
+    vi.mocked(platformNotificationService.notifyTenantApproved).mockResolvedValue(undefined);
   });
 
   it('creates admin and sends approval mail for new tenant', async () => {
@@ -121,7 +122,7 @@ describe('tenantOnboardingService', () => {
       firstName: 'Max',
       lastName: 'Mustermann',
     } as never);
-    vi.mocked(platformNotificationService.notifyTenantApproved).mockRejectedValue(
+    vi.mocked(platformNotificationService.notifyTenantApproved).mockRejectedValueOnce(
       new Error('SMTP nicht konfiguriert')
     );
 
