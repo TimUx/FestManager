@@ -799,7 +799,12 @@ Zeigt live:
 
 ![Bestellungen](screenshots/10-bestellungen.png)
 
-Alle Bestellungen chronologisch – mit **Name, E-Mail und Telefonnummer** (bei Online-Bestellungen) für Rückfragen.
+Alle Bestellungen chronologisch – mit **Kontaktdaten** (bei Online-Bestellungen) für Rückfragen.
+
+Neu:
+
+- **Zahlstatus** wird als Label angezeigt (z. B. „Bezahlt“, „Zahlung ausstehend“, „Vor Ort“).
+- Online-Bestellungen können bei Bedarf über **„Für Küche freigeben“** in die Küchenansicht übergeben werden.
 
 ```
 Neu → In Bearbeitung → Fertig → Abgeholt

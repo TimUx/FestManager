@@ -412,7 +412,12 @@ Implementierung in `backend/src/utils/helpers.ts`:
 
 Küche und Abholung sehen am Veranstaltungstag alle Bestellungen – auch solche, die Wochen vorher aufgegeben wurden.
 
-Bei aktivem **Payment-Modul** erscheinen Online-Bestellungen erst in der Küche, nachdem die Zahlung abgeschlossen wurde. Unbezahlte Bestellungen werden per `paymentServiceRegistry.filterReleasedIds()` ausgefiltert.
+**Wichtig (Zahlung & Küchenfreigabe):**
+
+- Im **Mitarbeiterbereich** sind Bestellungen **immer sichtbar** (unabhängig vom Zahlstatus). Der Zahlstatus wird als Label angezeigt.
+- In der **Küche** erscheinen Bestellungen erst, wenn sie **für die Küche freigegeben** wurden (`Order.released_to_kitchen`).
+  - Vor-Ort-Bestellungen werden sofort freigegeben.
+  - Online-Bestellungen werden nach erfolgreicher Online-Zahlung automatisch freigegeben oder können in der Bestellliste manuell freigegeben werden.
 
 ---
 
