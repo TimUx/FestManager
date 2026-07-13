@@ -13,6 +13,12 @@ export function getApiBasePath(): string {
   return apiBasePath;
 }
 
+/** Volle API-URL inkl. Mandanten-Pfad-Präfix (für FormData/Blob-Downloads). */
+export function buildApiUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API_URL}${apiBasePath}${normalized}`;
+}
+
 type AuthRefreshHandlers = {
   getRefreshToken: () => string | null;
   onTokensRefreshed: (accessToken: string, refreshToken?: string) => void;
@@ -81,7 +87,7 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = path.startsWith('http') ? path : `${API_URL}${apiBasePath}${path}`;
+  const url = path.startsWith('http') ? path : buildApiUrl(path);
   const res = await fetch(url, { ...options, headers });
 
   if (res.status === 401 && token && !options._skipRefresh) {
@@ -211,7 +217,7 @@ export const api = {
   uploadFoodImage: async (token: string, id: string, file: File) => {
     const formData = new FormData();
     formData.append('image', file);
-    const url = `${API_URL}/api/staff/food-items/${id}/image`;
+    const url = buildApiUrl(`/staff/food-items/${id}/image`);
     const res = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -231,7 +237,7 @@ export const api = {
   getOrdersExport: (token: string, eventId: string) =>
     request<import('@/types/ordersExport').EventOrdersExport>(`/staff/events/${eventId}/orders/export`, {}, token),
   downloadOrdersExport: async (token: string, eventId: string, filename: string) => {
-    const url = `${API_URL}/api/staff/events/${eventId}/orders/export.xlsx`;
+    const url = buildApiUrl(`/staff/events/${eventId}/orders/export.xlsx`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new ApiError(res.status, 'Export fehlgeschlagen');
     const blob = await res.blob();
@@ -329,7 +335,7 @@ export const api = {
   uploadClubLogo: async (token: string, file: File) => {
     const formData = new FormData();
     formData.append('image', file);
-    const url = `${API_URL}/api/admin/club/logo`;
+    const url = buildApiUrl('/admin/club/logo');
     const res = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -503,7 +509,7 @@ export const api = {
       token
     ),
   downloadPaymentExport: async (token: string, path: string, filename: string) => {
-    const url = `${API_URL}/api/modules/features/payment/admin/${path}`;
+    const url = buildApiUrl(`/modules/features/payment/admin/${path}`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new ApiError(res.status, 'Export fehlgeschlagen');
     const blob = await res.blob();
@@ -599,5 +605,10 @@ export function getImageUrl(url?: string): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http')) return url;
   const base = API_URL || '';
-  return `${base}${url}`;
+  let assetPath = url;
+  if (assetPath.startsWith('/uploads/') && apiBasePath !== '/api') {
+    const tenantPrefix = apiBasePath.replace(/\/api$/, '');
+    assetPath = `${tenantPrefix}${assetPath}`;
+  }
+  return `${base}${assetPath}`;
 }
