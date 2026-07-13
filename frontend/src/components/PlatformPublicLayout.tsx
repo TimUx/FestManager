@@ -6,14 +6,24 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { Link, useLocation } from 'react-router-dom';
+import { FestSchmiedeLogo } from '@/components/FestSchmiedeLogo';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { usePlatform } from '@/contexts/PlatformProvider';
 import { useRouting } from '@/contexts/RoutingProvider';
 import { api } from '@/services/api';
 import type { PlatformLegalLink } from '@/types/tenant';
 
+function isNavActive(path: string, pathname: string, hash: string): boolean {
+  if (path.includes('#')) {
+    const anchor = path.split('#')[1];
+    return pathname === '/' && hash === `#${anchor}`;
+  }
+  return pathname === path;
+}
+
 const NAV_ITEMS = [
   { label: 'Start', path: '/' },
+  { label: 'Bestellprozess', path: '/#bestellprozess' },
   { label: 'Funktionen', path: '/funktionen' },
   { label: 'Screenshots', path: '/screenshots' },
   { label: 'Open Source', path: '/open-source' },
@@ -40,6 +50,13 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
   const [legalLinks, setLegalLinks] = useState<PlatformLegalLink[]>([]);
 
   useEffect(() => {
+    if (location.hash) {
+      const el = document.querySelector(location.hash);
+      el?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
     api.getPlatformLegalLinks()
       .then((r) => setLegalLinks(r.items))
       .catch(() => setLegalLinks([]));
@@ -58,14 +75,24 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography
+          <Box
             component={Link}
             to="/"
-            variant="h6"
-            sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              textDecoration: 'none',
+              color: 'inherit',
+              minWidth: 0,
+            }}
           >
-            {platform.name}
-          </Typography>
+            <FestSchmiedeLogo height={36} variant="onPrimary" />
+            <Typography variant="h6" fontWeight={700} noWrap>
+              {platform.name}
+            </Typography>
+          </Box>
           <Box sx={{ display: { xs: 'none', lg: 'flex' }, gap: 0.5, mr: 2, flexWrap: 'wrap' }}>
             {NAV_ITEMS.map((item) => (
               <Button
@@ -74,7 +101,7 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
                 to={item.path}
                 color="inherit"
                 size="small"
-                sx={{ fontWeight: location.pathname === item.path ? 700 : 400 }}
+                sx={{ fontWeight: isNavActive(item.path, location.pathname, location.hash) ? 700 : 400 }}
               >
                 {item.label}
               </Button>
@@ -91,13 +118,19 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 280, pt: 1 }} role="navigation" aria-label="Hauptnavigation">
+          <Box sx={{ px: 2, py: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+            <FestSchmiedeLogo height={32} variant="onSurface" />
+            <Typography variant="subtitle1" fontWeight={700} noWrap>
+              {platform.name}
+            </Typography>
+          </Box>
           <List>
             {NAV_ITEMS.map((item) => (
               <ListItemButton
                 key={item.path}
                 component={Link}
                 to={item.path}
-                selected={location.pathname === item.path}
+                selected={isNavActive(item.path, location.pathname, location.hash)}
                 onClick={() => setDrawerOpen(false)}
               >
                 <ListItemText primary={item.label} />
@@ -134,7 +167,10 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
               ))}
             </Box>
           )}
-          <Typography variant="caption" color="text.secondary" display="block" align="center" sx={{ mt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 1 }}>
+            <FestSchmiedeLogo height={28} variant="onSurface" />
+          </Box>
+          <Typography variant="caption" color="text.secondary" display="block" align="center">
             © {new Date().getFullYear()} {platform.name}
           </Typography>
         </Container>

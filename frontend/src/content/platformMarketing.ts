@@ -52,6 +52,37 @@ export const FAQ_ITEMS = [
   },
 ];
 
+export const ORDER_PROCESS_STEPS = [
+  {
+    title: 'Bestellen',
+    description:
+      'Gäste wählen Speisen und Getränke auf der öffentlichen Bestellseite – am Smartphone, Tablet oder am Monitor vor Ort. Die Bestellung geht direkt ins System.',
+    screenshot: '/screenshots/01-bestellseite-monitor.png',
+    screenshotAlt: 'Öffentliche Bestellseite auf einem Monitor',
+  },
+  {
+    title: 'Küche',
+    description:
+      'Die Küche sieht alle offenen Bestellungen in Echtzeit. Helfer können Positionen abhaken, Prioritäten erkennen und den Überblick behalten – auch auf dem Tablet.',
+    screenshot: '/screenshots/07-kuechenansicht-tablet.png',
+    screenshotAlt: 'Küchenansicht mit offenen Bestellungen auf einem Tablet',
+  },
+  {
+    title: 'Abholbereit',
+    description:
+      'Ist eine Bestellung fertig, markiert die Küche sie als abholbereit. Das Abholboard und die Gäste werden automatisch informiert – kein Zurufen nötig.',
+    screenshot: '/screenshots/04-abholboard-monitor.png',
+    screenshotAlt: 'Abholboard mit abholbereiten Bestellungen',
+  },
+  {
+    title: 'Abholung',
+    description:
+      'Gäste holen ihre Bestellung am Tresen ab. Über die Bestellnummer oder den Status-Link sehen sie jederzeit, ob ihre Bestellung noch in Arbeit ist oder bereit liegt.',
+    screenshot: '/screenshots/02-kundenstatus.png',
+    screenshotAlt: 'Bestellstatus für Gäste mit Abholnummer',
+  },
+];
+
 export const SCREENSHOTS = [
   { src: '/screenshots/06-dashboard.png', title: 'Dashboard', alt: 'FestSchmiede Dashboard mit Statistiken' },
   { src: '/screenshots/09-bestellung.png', title: 'Bestellung', alt: 'Öffentliche Bestellseite' },

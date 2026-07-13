@@ -3,6 +3,7 @@ import { useRouting } from '@/contexts/RoutingProvider';
 import { isPlatformSurfaceScope } from '@/types/routing';
 import { useTenant } from '@/contexts/TenantProvider';
 import { usePlatform } from '@/contexts/PlatformProvider';
+import { FESTSCHMIEDE_LOGO_URL } from '@/components/FestSchmiedeLogo';
 import { getImageUrl } from '@/services/api';
 
 const DEFAULT_DESCRIPTION =
@@ -74,7 +75,13 @@ export function BrandingHead({ titleSuffix, description, path }: BrandingHeadPro
     upsertMeta('og:type', 'website', 'property');
     upsertMeta('og:url', canonical, 'property');
     upsertMeta('og:site_name', platform.name, 'property');
+    const defaultOgImage = `${origin.replace(/\/$/, '')}${FESTSCHMIEDE_LOGO_URL}`;
+    const ogImage = isPlatformSurfaceScope(routing.scope)
+      ? defaultOgImage
+      : (getImageUrl(tenant.logoUrl ?? undefined) ?? defaultOgImage);
+    upsertMeta('og:image', ogImage, 'property');
     upsertMeta('twitter:card', 'summary_large_image');
+    upsertMeta('twitter:image', ogImage);
     upsertMeta('twitter:title', document.title);
     upsertMeta('twitter:description', desc);
 

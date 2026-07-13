@@ -5,6 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
+import { FestSchmiedeLogo } from '@/components/FestSchmiedeLogo';
 import { usePlatformAuth } from '@/contexts/PlatformAuthContext';
 import { platformApi } from '@/services/platformApi';
 
@@ -112,6 +113,9 @@ export function PlatformLoginPage() {
   return (
     <Box minHeight="100vh" display="flex" alignItems="center" bgcolor="#0d47a1">
       <Container maxWidth="sm">
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <FestSchmiedeLogo height={72} variant="onPrimary" />
+        </Box>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h5" gutterBottom fontWeight={700}>
             Plattform-Administration

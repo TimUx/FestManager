@@ -1,5 +1,6 @@
 import { Box, Container, Typography, type SxProps, type Theme } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { FestSchmiedeLogo } from '@/components/FestSchmiedeLogo';
 
 interface MarketingSectionProps {
   title: string;
@@ -44,9 +45,10 @@ interface HeroProps {
   title: string;
   subtitle: string;
   children?: React.ReactNode;
+  showLogo?: boolean;
 }
 
-export function MarketingHero({ title, subtitle, children }: HeroProps) {
+export function MarketingHero({ title, subtitle, children, showLogo = false }: HeroProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -62,6 +64,9 @@ export function MarketingHero({ title, subtitle, children }: HeroProps) {
       }}
     >
       <Container maxWidth="lg">
+        {showLogo && (
+          <FestSchmiedeLogo height={80} variant="onSurface" sx={{ mb: 3 }} />
+        )}
         <Typography variant="h2" fontWeight={900} sx={{ fontSize: { xs: '2rem', md: '3rem' }, mb: 2 }}>
           {title}
         </Typography>

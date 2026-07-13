@@ -3,6 +3,16 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.4.17 - 2026-07-13
+
+### Hinzugefügt
+
+- **Branding:** FestSchmiede-Logo in Header, Landingpage, Plattform-Login, Admin und als Favicon/PWA-Icon.
+- **Landingpage:** Abschnitt „So läuft der Bestellprozess“ mit Ablaufdiagramm und Screenshots (Bestellen → Küche → Abholbereit → Abholung).
+- **Navigation:** Link „Bestellprozess“ auf der Marketing-Website.
+
+---
+
 ## 2.4.16 - 2026-07-13
 
 ### Hinzugefügt

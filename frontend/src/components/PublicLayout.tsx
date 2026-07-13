@@ -10,8 +10,8 @@ import {
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import SearchIcon from '@mui/icons-material/Search';
+import { FestSchmiedeLogo } from '@/components/FestSchmiedeLogo';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useClub } from '@/contexts/ClubContext';
 import { Link } from 'react-router-dom';
@@ -58,7 +58,7 @@ export function PublicLayout({ children, fullWidth = false, fillHeight = false }
           {logoUrl ? (
             <Avatar src={logoUrl} alt={club.clubName} sx={{ width: 36, height: 36, mr: 1.5 }} />
           ) : (
-            <RestaurantMenuIcon sx={{ mr: 1 }} />
+            <FestSchmiedeLogo height={36} variant="onPrimary" sx={{ mr: 1.5 }} />
           )}
           <Typography
             variant="h6"

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PlatformPublicLayout } from '@/components/PlatformPublicLayout';
 import { BrandingHead } from '@/components/BrandingHead';
 import { MarketingHero, MarketingSection, CtaBand } from '@/components/marketing/MarketingLayout';
+import { OrderProcessFlow } from '@/components/marketing/OrderProcessFlow';
 import { usePlatform } from '@/contexts/PlatformProvider';
 import { PLATFORM_BENEFITS, PLATFORM_FEATURES, SCREENSHOTS, TARGET_GROUPS } from '@/content/platformMarketing';
 
@@ -15,6 +16,7 @@ export function PlatformHomePage() {
         description="FestSchmiede ist eine moderne Open-Source-Plattform zur Organisation von Veranstaltungen für Vereine und gemeinnützige Organisationen."
       />
       <MarketingHero
+        showLogo
         title="Veranstaltungen organisieren – einfach, digital, gemeinschaftlich"
         subtitle="FestSchmiede ist eine moderne Open-Source-Plattform zur Organisation von Veranstaltungen. Sie unterstützt Veranstalter bei Bestellungen, Küche, Abholung, Online-Zahlungen, Benachrichtigungen, Auswertungen und Veranstaltungsorganisation."
       >
@@ -43,6 +45,15 @@ export function PlatformHomePage() {
           Abholung und Auswertungen in einer übersichtlichen Plattform. Jede Organisation kann als eigener Mandant
           arbeiten und nur die Module nutzen, die wirklich gebraucht werden.
         </Typography>
+      </MarketingSection>
+
+      <MarketingSection
+        id="bestellprozess"
+        title="So läuft der Bestellprozess"
+        subtitle="Vom ersten Klick bis zur Abholung am Tresen – FestSchmiede begleitet Gäste und Helfer durch jeden Schritt."
+        sx={{ bgcolor: 'background.paper' }}
+      >
+        <OrderProcessFlow />
       </MarketingSection>
 
       <MarketingSection title="Wichtigste Funktionen" subtitle="Alles, was Veranstalter im Alltag brauchen – modular und erweiterbar.">
