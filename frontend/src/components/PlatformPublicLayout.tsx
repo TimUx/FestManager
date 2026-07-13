@@ -31,6 +31,8 @@ type PrimaryNavItem = {
 
 const PRIMARY_NAV: PrimaryNavItem[] = [
   { label: 'Start', path: '/' },
+  { label: 'Über das Projekt', path: '/ueber-das-projekt', shortLabel: 'Projekt' },
+  { label: 'Über den Entwickler', path: '/ueber-den-entwickler', shortLabel: 'Entwickler' },
   { label: 'Mandant beantragen', path: '/mandant-beantragen', shortLabel: 'Beantragen', cta: true },
 ];
 
@@ -47,8 +49,6 @@ const NAV_GROUPS = [
     title: 'Projekt',
     items: [
       { label: 'Open Source', path: '/open-source' },
-      { label: 'Über das Projekt', path: '/ueber-das-projekt' },
-      { label: 'Über den Entwickler', path: '/ueber-den-entwickler' },
       { label: 'Für Vereine', path: '/fuer-vereine' },
     ],
   },
@@ -185,7 +185,7 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexGrow: 1, justifyContent: 'flex-end' }}>
             {PRIMARY_NAV.map((item) => (
               <Button
                 key={item.path}
@@ -204,7 +204,7 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
                   }),
                 }}
               >
-                {item.cta ? (
+                {item.shortLabel ? (
                   <>
                     <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>{item.label}</Box>
                     <Box component="span" sx={{ display: { xs: 'inline', lg: 'none' } }}>{item.shortLabel}</Box>
@@ -225,17 +225,6 @@ export function PlatformPublicLayout({ children }: PlatformPublicLayoutProps) {
             <MenuIcon />
           </IconButton>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: 'rgba(255,255,255,0.25)', display: { xs: 'none', sm: 'block' } }} />
-
-          <Button
-            component="a"
-            href={loginUrl}
-            color="inherit"
-            size="small"
-            sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-          >
-            Anmelden
-          </Button>
           <IconButton onClick={toggleMode} color="inherit" aria-label="Design wechseln">
             {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>

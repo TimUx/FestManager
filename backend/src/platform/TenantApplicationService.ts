@@ -7,6 +7,7 @@ import type { PlatformTenantAdminService } from './PlatformTenantAdminService';
 import type { AuditLogEntry } from './types';
 import { platformNotificationService } from './notifications/platformNotificationService';
 import { tenantOnboardingService } from './TenantOnboardingService';
+import { normalizeTenantSubdomain } from '../utils/tenantApplicationInput';
 
 export interface SubmitTenantApplicationInput {
   organization: string;
@@ -38,16 +39,6 @@ export interface TenantApplicationListFilter {
   limit?: number;
 }
 
-function normalizeSubdomain(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 48);
-}
-
 export class TenantApplicationService {
   constructor(
     private readonly platformContext: PlatformContext,
@@ -64,7 +55,7 @@ export class TenantApplicationService {
       throw new AppError(400, 'Datenschutz und Nutzungsbedingungen müssen akzeptiert werden.');
     }
 
-    const subdomain = normalizeSubdomain(input.requestedSubdomain);
+    const subdomain = normalizeTenantSubdomain(input.requestedSubdomain);
     if (!subdomain || subdomain.length < 3) {
       throw new AppError(400, 'Bitte eine gültige Internetadresse angeben (mind. 3 Zeichen, nur Kleinbuchstaben, Zahlen und Bindestriche).');
     }

@@ -72,9 +72,9 @@ export const lookupRateLimiter = rateLimit({
   message: { error: 'Zu viele Suchanfragen. Bitte später erneut versuchen.' },
 });
 
-/** Mandantenbewerbungen: max. 5 pro Stunde pro IP. */
+/** Mandantenbewerbungen: max. 5 pro 30 Minuten pro IP. */
 export const tenantApplicationRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
+  windowMs: 30 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,

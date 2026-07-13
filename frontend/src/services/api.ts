@@ -1,5 +1,8 @@
 const API_URL = import.meta.env.VITE_API_URL || '';
 
+import type { RateLimitInfo } from '@/utils/rateLimitMessage';
+import { parseRateLimitInfo } from '@/utils/rateLimitMessage';
+
 let apiBasePath = '/api';
 
 export function configureApiBase(path: string): void {
@@ -23,8 +26,14 @@ export function configureAuthRefresh(handlers: AuthRefreshHandlers): void {
   authRefreshHandlers = handlers;
 }
 
+
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public details?: Array<{ field: string; message: string }>,
+    public rateLimit?: RateLimitInfo
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -84,7 +93,14 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
-    throw new ApiError(res.status, body.error || 'Anfrage fehlgeschlagen');
+    const details = Array.isArray(body.details)
+      ? body.details as Array<{ field: string; message: string }>
+      : undefined;
+    const message = details?.length
+      ? details.map((d) => d.message).join(' ')
+      : body.error || 'Anfrage fehlgeschlagen';
+    const rateLimit = res.status === 429 ? parseRateLimitInfo(res.headers) : undefined;
+    throw new ApiError(res.status, message, details, rateLimit);
   }
 
   if (res.status === 204) return undefined as T;

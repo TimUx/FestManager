@@ -72,6 +72,9 @@ export interface TenantApplicationInput {
   requestedSubdomain: string;
   privacyAccepted: true;
   termsAccepted: true;
+  formStartedAt: number;
+  _hp?: string;
+  turnstileToken?: string;
 }
 
 export const DEFAULT_TENANT: TenantPublicData = {

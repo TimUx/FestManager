@@ -6,6 +6,7 @@ import {
 } from '../platform/bootstrap';
 import { platformLegalService } from '../platform/PlatformLegalService';
 import { platformDomainService } from '../platform/PlatformDomainService';
+import { validateFormBotProtection } from '../middleware/botProtection';
 
 export const platformPublicController = {
   async getPlatform(_req: Request, res: Response, next: NextFunction) {
@@ -63,6 +64,7 @@ export const platformPublicController = {
 
   async submitApplication(req: Request, res: Response, next: NextFunction) {
     try {
+      await validateFormBotProtection(req.body);
       const result = await tenantApplicationService.submit(req.body);
       res.status(201).json(result);
     } catch (error) {

@@ -3,6 +3,28 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.4.25 - 2026-07-13
+
+### Hinzugefügt
+
+- **Landingpage:** Hero-Logo doppelt so groß, Überschrift in einer Zeile daneben.
+- **Landingpage:** „Über das Projekt“ und „Über den Entwickler“ direkt im Header; „Anmelden“ nur noch im Menü.
+- **Mandantenantrag:** Feldvalidierung mit Zeichenzählern, konkreten Fehlermeldungen und Scroll zum ersten Fehler.
+- **Mandantenantrag:** Bot-Schutz (Honeypot, Mindest-Ausfüllzeit, Cloudflare Turnstile wie bei Bestellungen).
+- **Mandantenantrag:** Rate-Limit-Hinweis mit Uhrzeit für den nächsten Versuch.
+
+### Geändert
+
+- **Landingpage:** Header-Links rechtsbündig ausgerichtet.
+- **Mandantenantrag:** Rate-Limit von 5/Stunde auf **5 pro 30 Minuten** reduziert.
+- **Mandantenantrag:** Website und Internetadresse werden vor Validierung normalisiert (`https://`, Kleinbuchstaben).
+
+### Behoben
+
+- **Mandantenantrag:** Validierungsfehler zeigen betroffenes Feld und Grund statt nur „Validierungsfehler“.
+
+---
+
 ## 2.4.24 - 2026-07-13
 
 ### Behoben

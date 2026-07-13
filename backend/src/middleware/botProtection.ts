@@ -25,7 +25,7 @@ async function verifyTurnstile(token: string): Promise<void> {
   }
 }
 
-export async function validateOrderBotProtection(payload: BotProtectionPayload): Promise<void> {
+export async function validateFormBotProtection(payload: BotProtectionPayload): Promise<void> {
   if (payload._hp && payload._hp.trim().length > 0) {
     throw new AppError(400, 'Anfrage konnte nicht verarbeitet werden', 'BOT_DETECTED');
   }
@@ -50,3 +50,6 @@ export async function validateOrderBotProtection(payload: BotProtectionPayload):
     await verifyTurnstile(payload.turnstileToken);
   }
 }
+
+/** @deprecated Use validateFormBotProtection */
+export const validateOrderBotProtection = validateFormBotProtection;

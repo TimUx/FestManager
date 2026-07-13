@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  normalizeOptionalWebsite,
+  normalizeTenantSubdomain,
+  optionalTruncatedInt,
+} from '../utils/tenantApplicationInput';
 
 const credentialLoginSchema = z
   .object({
@@ -268,18 +273,37 @@ export const submitTenantApplicationSchema = z.object({
   city: z.string().min(2, 'Ort erforderlich').max(100),
   country: z.string().max(100).optional(),
   email: z.string().email('Ungültige E-Mail-Adresse'),
-  phone: z.string().max(40).optional(),
-  website: z.string().url('Ungültige URL').optional().or(z.literal('')),
-  memberCount: z.number().int().min(0).max(1_000_000).optional(),
-  eventsPerYear: z.number().int().min(0).max(10_000).optional(),
-  reason: z.string().min(20, 'Bitte ausführlicher begründen').max(5000),
-  desiredFeatures: z.string().min(10, 'Bitte gewünschte Funktionen angeben').max(3000),
-  freeTierJustification: z.string().min(20, 'Bitte Begründung angeben').max(3000),
-  plannedUsage: z.string().min(10, 'Geplante Nutzung angeben').max(3000),
+  phone: z.string().max(40).optional().or(z.literal('')),
+  website: z.preprocess(
+    normalizeOptionalWebsite,
+    z.string().url('Ungültige URL').optional()
+  ),
+  memberCount: z.preprocess(
+    optionalTruncatedInt,
+    z.number().int().min(0, 'Anzahl Mitglieder darf nicht negativ sein').max(1_000_000).optional()
+  ),
+  eventsPerYear: z.preprocess(
+    optionalTruncatedInt,
+    z.number().int().min(0, 'Veranstaltungen pro Jahr darf nicht negativ sein').max(10_000).optional()
+  ),
+  reason: z.string().min(20, 'Bitte ausführlicher begründen (mindestens 20 Zeichen)').max(5000),
+  desiredFeatures: z.string().min(10, 'Bitte gewünschte Funktionen angeben (mindestens 10 Zeichen)').max(3000),
+  freeTierJustification: z.string().min(20, 'Bitte Begründung angeben (mindestens 20 Zeichen)').max(3000),
+  plannedUsage: z.string().min(10, 'Geplante Nutzung angeben (mindestens 10 Zeichen)').max(3000),
   notes: z.string().max(3000).optional(),
-  requestedSubdomain: z.string().min(3, 'Internetadresse: mindestens 3 Zeichen').max(48).regex(/^[a-z0-9-]+$/i, 'Nur Buchstaben, Zahlen und Bindestriche'),
+  requestedSubdomain: z.preprocess(
+    (value) => (typeof value === 'string' ? normalizeTenantSubdomain(value) : value),
+    z
+      .string()
+      .min(3, 'Internetadresse: mindestens 3 Zeichen')
+      .max(48)
+      .regex(/^[a-z0-9-]+$/, 'Nur Buchstaben, Zahlen und Bindestriche')
+  ),
   privacyAccepted: z.literal(true, { errorMap: () => ({ message: 'Datenschutzerklärung muss akzeptiert werden' }) }),
   termsAccepted: z.literal(true, { errorMap: () => ({ message: 'Nutzungsbedingungen müssen akzeptiert werden' }) }),
+  _hp: z.string().optional(),
+  formStartedAt: z.number().int().positive(),
+  turnstileToken: z.string().optional(),
 });
 
 export const updateTenantApplicationStatusSchema = z.object({

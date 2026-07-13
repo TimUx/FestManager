@@ -1,6 +1,6 @@
 import { Box, Container, Typography, type SxProps, type Theme } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { FestSchmiedeLogo } from '@/components/FestSchmiedeLogo';
+import { FestSchmiedeLogo, FESTSCHMIEDE_LOGO_HEIGHTS } from '@/components/FestSchmiedeLogo';
 
 interface MarketingSectionProps {
   title: string;
@@ -51,6 +51,7 @@ interface HeroProps {
 export function MarketingHero({ title, subtitle, children, showLogo = false }: HeroProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const heroLogoHeight = FESTSCHMIEDE_LOGO_HEIGHTS.hero * 2;
 
   return (
     <Box
@@ -64,12 +65,40 @@ export function MarketingHero({ title, subtitle, children, showLogo = false }: H
       }}
     >
       <Container maxWidth="lg">
-        {showLogo && (
-          <FestSchmiedeLogo size="hero" variant="onSurface" sx={{ mb: 3 }} />
+        {showLogo ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 2, md: 3 },
+              mb: 2,
+              flexDirection: { xs: 'column', sm: 'row' },
+            }}
+          >
+            <FestSchmiedeLogo
+              size="hero"
+              height={heroLogoHeight}
+              variant="onSurface"
+              sx={{ flexShrink: 0 }}
+            />
+            <Typography
+              component="h1"
+              variant="h2"
+              fontWeight={900}
+              sx={{
+                flex: 1,
+                fontSize: { xs: '1.65rem', sm: '1.85rem', md: '2.25rem', lg: '2.75rem' },
+                lineHeight: 1.2,
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+        ) : (
+          <Typography variant="h2" component="h1" fontWeight={900} sx={{ fontSize: { xs: '2rem', md: '3rem' }, mb: 2 }}>
+            {title}
+          </Typography>
         )}
-        <Typography variant="h2" fontWeight={900} sx={{ fontSize: { xs: '2rem', md: '3rem' }, mb: 2 }}>
-          {title}
-        </Typography>
         <Typography variant="h5" color="text.secondary" sx={{ maxWidth: 760, mb: 4, lineHeight: 1.5 }}>
           {subtitle}
         </Typography>
