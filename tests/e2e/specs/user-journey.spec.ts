@@ -35,9 +35,9 @@ test.describe('FestSchmiede Nutzerreise (End-to-End)', () => {
   test('1 · Mandant beantragen (öffentliche Bewerbung)', async ({ page }) => {
     await page.goto('/mandant-beantragen');
     await expect(page.getByRole('heading', { name: /mandant beantragen/i })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByLabel('Organisation')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('textbox', { name: 'Organisation' })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByLabel('Organisation').fill(state.organization);
+    await page.getByRole('textbox', { name: 'Organisation' }).fill(state.organization);
     await page.getByLabel('Ansprechpartner').fill('QA Ansprechpartner');
     await page.getByLabel('E-Mail', { exact: true }).fill(state.adminEmail);
     await page.getByLabel('Straße').fill('Musterstraße 1');
