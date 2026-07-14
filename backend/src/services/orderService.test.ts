@@ -30,6 +30,10 @@ vi.mock('./eventService', () => ({
       const event = await mockGetActive();
       return { ...event, id };
     },
+    getStaffPickupEvent: async (id: string) => {
+      const event = await mockGetActive();
+      return { ...event, id };
+    },
     getOrderableById: async (id: string, _channel: string) => {
       const event = await mockGetActive();
       return { ...event, id, onlineOrdersActive: true, cashierActive: true, ordersClosed: false };
