@@ -58,8 +58,8 @@ test.describe('FestSchmiede Nutzerreise (End-to-End)', () => {
     );
     const legalChecks = page.locator('form input[type="checkbox"]');
     await expect(legalChecks).toHaveCount(2);
-    await legalChecks.nth(0).check({ force: true });
-    await legalChecks.nth(1).check({ force: true });
+    await page.locator('label').filter({ hasText: /Datenschutzerklärung/i }).click();
+    await page.locator('label').filter({ hasText: /Nutzungsbedingungen/i }).click();
     await expect(legalChecks.nth(0)).toBeChecked();
     await expect(legalChecks.nth(1)).toBeChecked();
 
