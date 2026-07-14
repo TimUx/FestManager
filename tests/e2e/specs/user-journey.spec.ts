@@ -82,7 +82,7 @@ test.describe('FestSchmiede Nutzerreise (End-to-End)', () => {
     await page.getByLabel('Suche').fill(state.slug);
     await expect(page.getByText(state.organization)).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: /details/i }).click();
-    await expect(page.getByText(state.slug)).toBeVisible();
+    await expect(page.getByText(new RegExp(`Gewünschte Internetadresse:\\s*${state.slug}`, 'i'))).toBeVisible();
     await page.getByRole('button', { name: /^genehmigen$/i }).click();
     await expect(page.getByText(/aktion erfolgreich/i)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/genehmigt/i)).toBeVisible();
@@ -225,7 +225,7 @@ test.describe('FestSchmiede Nutzerreise (End-to-End)', () => {
     await expect(page.getByText(state.organization)).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: /details/i }).click();
 
-    await expect(page.getByText(state.slug)).toBeVisible();
+    await expect(page.getByText(new RegExp(`Gewünschte Internetadresse:\\s*${state.slug}`, 'i'))).toBeVisible();
     await expect(page.getByText('Statistik')).toBeVisible();
     await expect(
       page.locator('div').filter({ has: page.getByText('Bestellungen', { exact: true }) })
