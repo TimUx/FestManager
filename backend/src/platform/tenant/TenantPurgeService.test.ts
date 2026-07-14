@@ -4,16 +4,21 @@ import { TenantPurgeService, deleteTenantUploads } from './TenantPurgeService';
 
 const tenantId = '00000000-0000-0000-0000-000000000001';
 
-const tx = {
-  platformAuditLog: { deleteMany: vi.fn() },
-  tenantApplication: { deleteMany: vi.fn() },
-  tenant: { delete: vi.fn() },
-};
+const { tx, prismaMock } = vi.hoisted(() => {
+  const transactionClient = {
+    platformAuditLog: { deleteMany: vi.fn() },
+    tenantApplication: { deleteMany: vi.fn() },
+    tenant: { delete: vi.fn() },
+  };
 
-const prismaMock = {
-  $executeRaw: vi.fn(),
-  $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<void>) => fn(tx)),
-};
+  return {
+    tx: transactionClient,
+    prismaMock: {
+      $executeRaw: vi.fn(),
+      $transaction: vi.fn(async (fn: (client: typeof transactionClient) => Promise<void>) => fn(transactionClient)),
+    },
+  };
+});
 
 vi.mock('../../config/database', () => ({
   prisma: prismaMock,
