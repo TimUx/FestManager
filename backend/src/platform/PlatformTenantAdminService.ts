@@ -8,6 +8,7 @@ import { tenantOnboardingService } from './TenantOnboardingService';
 import { tenantPurgeService } from './tenant/TenantPurgeService';
 import { AppError } from '../middleware/errorHandler';
 import type { ModuleRegistry } from './ModuleRegistry';
+import type { TenantResolver } from './tenant/TenantResolver';
 import { isPreviewModule } from './manifest';
 
 export interface TenantModuleEntitlement {
@@ -45,7 +46,8 @@ export class PlatformTenantAdminService {
     private readonly tenantRepository: TenantRepository,
     private readonly platformContext: PlatformContext,
     private readonly audit: { log: (entry: AuditLogEntry) => Promise<void> },
-    private readonly moduleRegistry: ModuleRegistry
+    private readonly moduleRegistry: ModuleRegistry,
+    private readonly tenantResolver?: Pick<TenantResolver, 'invalidateCache'>
   ) {}
 
   async list(filter: TenantListFilter = {}): Promise<{ items: TenantListItem[]; total: number }> {
@@ -165,6 +167,7 @@ export class PlatformTenantAdminService {
     if (!tenant) throw new AppError(404, 'Mandant nicht gefunden');
 
     await tenantPurgeService.purge(id, tenant.slug);
+    this.tenantResolver?.invalidateCache();
 
     await this.audit.log({
       action: 'platform.tenant.delete',

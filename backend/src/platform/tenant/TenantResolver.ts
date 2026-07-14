@@ -146,13 +146,13 @@ export class TenantResolver {
 
     const negativeKey = `neg:slug:${slug}`;
     if (this.isNegativeCached(negativeKey)) {
-      return null;
+      throw new TenantNotFoundError();
     }
 
     const tenant = await this.tenantService.findBySlug(slug);
     if (!tenant) {
       this.setNegativeCache(negativeKey);
-      return null;
+      throw new TenantNotFoundError();
     }
 
     const contextData = await this.tenantService.resolveContextData(tenant);

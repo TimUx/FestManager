@@ -21,6 +21,10 @@ describe('PlatformTenantAdminService.delete', () => {
     findById: vi.fn(),
   } as unknown as TenantService;
 
+  const tenantResolver = {
+    invalidateCache: vi.fn(),
+  };
+
   const audit = { log: vi.fn() };
 
   const service = new PlatformTenantAdminService(
@@ -28,7 +32,8 @@ describe('PlatformTenantAdminService.delete', () => {
     {} as TenantRepository,
     {} as PlatformContext,
     audit,
-    {} as ModuleRegistry
+    {} as ModuleRegistry,
+    tenantResolver
   );
 
   beforeEach(() => {
@@ -45,6 +50,7 @@ describe('PlatformTenantAdminService.delete', () => {
     await service.delete(tenantId, actorId);
 
     expect(tenantPurgeService.purge).toHaveBeenCalledWith(tenantId, 'demo');
+    expect(tenantResolver.invalidateCache).toHaveBeenCalled();
     expect(audit.log).toHaveBeenCalledWith({
       action: 'platform.tenant.delete',
       actorId,

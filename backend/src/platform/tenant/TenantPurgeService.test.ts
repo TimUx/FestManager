@@ -46,6 +46,13 @@ describe('TenantPurgeService', () => {
     prismaMock.$executeRaw.mockResolvedValue(0);
     tx.platformAuditLog.deleteMany.mockResolvedValue({ count: 2 });
     tx.tenantApplication.deleteMany.mockResolvedValue({ count: 1 });
+    tx.moduleMigration.deleteMany.mockResolvedValue({ count: 0 });
+    tx.tenantModule.deleteMany.mockResolvedValue({ count: 0 });
+    tx.order.deleteMany.mockResolvedValue({ count: 4 });
+    tx.event.deleteMany.mockResolvedValue({ count: 1 });
+    tx.foodItem.deleteMany.mockResolvedValue({ count: 2 });
+    tx.customer.deleteMany.mockResolvedValue({ count: 2 });
+    tx.user.deleteMany.mockResolvedValue({ count: 3 });
     tx.tenant.delete.mockResolvedValue({ id: tenantId });
   });
 
