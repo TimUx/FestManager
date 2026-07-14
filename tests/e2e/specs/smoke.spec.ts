@@ -36,23 +36,22 @@ test.describe('Bestellablauf', () => {
     await page.goto(tenantPath('/public'));
     await expect(page.getByText(/sommerfest|bestell/i).first()).toBeVisible({ timeout: 30_000 });
 
-    const addButton = page.getByRole('button', { name: /\+/ }).first();
-    if (await addButton.isVisible()) {
-      await addButton.click();
-    }
+    const increaseQty = page.getByRole('button', { name: /menge erhöhen/i }).first();
+    await expect(increaseQty).toBeVisible({ timeout: 15_000 });
+    await increaseQty.click();
 
-    const weiter = page.getByRole('button', { name: /weiter/i });
-    if (await weiter.isVisible()) {
-      await weiter.click();
-    }
+    const weiter = page.getByRole('button', { name: /^weiter$/i });
+    await expect(weiter).toBeEnabled({ timeout: 10_000 });
+    await weiter.click();
+
+    await expect(page.getByTestId('order-checkout-step')).toBeVisible({ timeout: 15_000 });
 
     await page.getByLabel(/vorname/i).fill('QA');
     await page.getByLabel(/nachname/i).fill('Tester');
-    const submit = page.getByRole('button', { name: /bestellung absenden|bestellen/i });
-    if (await submit.isEnabled()) {
-      await submit.click();
-      await expect(page).toHaveURL(/status/, { timeout: 20_000 });
-    }
+    const submit = page.getByRole('button', { name: /bestellung absenden|bestellen und bezahlen/i });
+    await expect(submit).toBeEnabled({ timeout: 10_000 });
+    await submit.click();
+    await expect(page).toHaveURL(/status/, { timeout: 20_000 });
   });
 });
 
