@@ -209,7 +209,7 @@ test.describe('FestSchmiede Nutzerreise (End-to-End)', () => {
   test('9 · Admin-Dashboard (Übersicht)', async () => {
     await loginTenantAdmin(page, state.slug, state.adminEmail, state.adminPassword);
     await page.goto(tenantRoute(state.slug, '/admin'));
-    await expect(page.getByRole('heading', { name: /^administration$/i })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: /^administration$/i }).first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/veranstalter, team und funktionen/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /veranstaltungen/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /^team$/i }).first()).toBeVisible();
