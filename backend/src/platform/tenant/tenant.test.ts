@@ -227,6 +227,18 @@ describe('TenantResolver', () => {
     await expect(resolver.resolve(req)).rejects.toMatchObject({ statusCode: 404 });
   });
 
+  it('allows internal Docker service hostnames', async () => {
+    const req = {
+      headers: { host: 'backend' },
+      hostname: 'backend',
+      path: '/api/health',
+      originalUrl: '/api/health',
+    } as Request;
+
+    const result = await resolver.resolve(req);
+    expect(result.type).toBe('platform');
+  });
+
   it('falls back to www for single-segment paths that are not tenant slugs', async () => {
     vi.mocked(tenantService.findBySlug).mockResolvedValue(null);
     const req = {

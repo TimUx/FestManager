@@ -181,12 +181,13 @@ docker service scale festschmiede_backend=1
 # 3. Frontend neu starten (nginx löst backend erneut auf)
 docker service update --force festschmiede_frontend
 
-# 4. Proxy testen (aus laufendem Frontend-Container)
+# 4. Proxy testen (über nginx, wie der Browser)
 CID=$(docker ps -q -f name=festschmiede_frontend | head -1)
-docker exec "$CID" wget -qO- http://backend:3001/api/health
+docker exec "$CID" wget -qO- --header="Host: www.festschmiede.de" \
+  "http://127.0.0.1/api/public/routing-config?frontendPath=/"
 ```
 
-Erwartung Schritt 4: JSON mit `"status":"ok"`. Danach Browser-Reload.
+Erwartung Schritt 4: JSON mit `"scope":"www"` (oder `"tenant"`). Direkt `http://backend:3001/...` liefert 400 — Host `backend` ist kein öffentlicher Domainname, die Verbindung funktioniert dennoch.
 
 Ab Frontend-Image **v2.4.37** (nginx mit Docker-DNS-Resolver) ist Schritt 3 nach Installation automatisch.
 

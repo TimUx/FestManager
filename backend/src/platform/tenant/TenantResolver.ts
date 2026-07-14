@@ -246,6 +246,7 @@ export class TenantResolver {
       host === '127.0.0.1' ||
       host === baseDomain ||
       host.endsWith(`.${baseDomain}`) ||
+      (!host.includes('.') && /^[a-z0-9-]+$/i.test(host)) ||
       allowed.some(
         (domain) =>
           host === domain.toLowerCase() || host.endsWith(`.${domain.toLowerCase()}`)
