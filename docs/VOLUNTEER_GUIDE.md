@@ -8,7 +8,7 @@ Technische Details: [Dokumentation](README.md) · [Betriebshandbuch](OPERATIONS.
 
 ## Was die Plattform macht
 
-An einem Veranstaltung können Gäste **online vorbestellen**, die **Küche** sieht Bestellungen live, an der **Abholung** wird mit einer Nummer ausgegeben, und der **Vorstand** pflegt Speisen-Katalog und Veranstaltungen im Admin-Bereich.
+An einem Veranstaltung können Gäste **online vorbestellen**, die **Küche** sieht Bestellungen live, an der **Abholung** wird mit einer Nummer ausgegeben, und der **Vorstand** pflegt Speisen & Getränke sowie Veranstaltungen im Admin-Bereich.
 
 Alles läuft auf **Ihrem** Server — keine Cloud-Pflicht, keine Kunden-Registrierung.
 
@@ -31,7 +31,7 @@ Kurz manuell:
    ```
 5. Im Browser öffnen: `http://localhost:5173/admin/login`
 6. **Eigenes Admin-Passwort** setzen (Benutzerverwaltung) — Demo-Zugänge nur für Tests, siehe [Developer Guide](DEVELOPER_GUIDE.md#test-zugangsdaten).
-7. Verein, Veranstaltung und Speisen-Katalog eintragen.
+7. Verein, Veranstaltung und Speisen & Getränke-Katalog eintragen.
 8. **Testbestellung** vom Handy aus probieren.
 
 ---
@@ -43,8 +43,9 @@ Kurzfassung — ausführlich in [OPERATIONS.md](OPERATIONS.md#vor-dem-sommerfest
 - [ ] Server läuft, Internet/WLAN ok
 - [ ] Backup erstellt (`./scripts/backup/postgres-backup.sh`)
 - [ ] Richtige Veranstaltung(en) sind **aktiv** (Schalter im Admin)
-- [ ] Speisen dem Event unter **Veranstaltungen → Speisen** zugeordnet
-- [ ] Küchen-Tablet und Abhol-Monitor getestet
+- [ ] Speisen & Getränke dem Event unter **Veranstaltungen → Speisen & Getränke** zugeordnet
+- [ ] Küchen-Tablet und Abhol-Monitor getestet (Service → Abholboard)
+- [ ] Verfügbarkeit / Ausverkauft-Schalter unter `/service/speisen` geprüft
 - [ ] Kein Software-Update am Festtag selbst
 
 ---
@@ -54,10 +55,10 @@ Kurzfassung — ausführlich in [OPERATIONS.md](OPERATIONS.md#vor-dem-sommerfest
 | Wer | Wo im Browser | Aufgabe |
 |-----|----------------|---------|
 | Gäste | Startseite `/` | Bestellen |
-| Küche | `/service/kueche` | Gerichte abarbeiten |
+| Küche | `/service/kueche` | Bestellungen abarbeiten |
 | Abholung | `/service/abholung` | Nummer eingeben, aushändigen |
 | Kasse (optional) | `/service/bestellung` | Bestellung vor Ort |
-| Monitor | `/abholboard` | Fertige Nummern groß anzeigen (Veranstaltung wählen, wenn mehrere aktiv) |
+| Monitor | `/abholboard` (auch im Service-Menü) | Fertige Nummern groß anzeigen (Veranstaltung wählen, wenn mehrere aktiv) |
 
 **Tipp:** Lesezeichen auf den Tablets anlegen — dann finden Helfer die Seiten sofort.
 

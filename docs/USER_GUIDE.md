@@ -10,8 +10,9 @@ Anleitung für Mitarbeiter in Küche, Abholung und Service – ohne Administrato
 4. [Abholung](#abholung)
 5. [Bestellung vor Ort](#bestellung-vor-ort)
 6. [Bestellungen verwalten](#bestellungen-verwalten)
-7. [Vorausbestellungen am Event-Tag](#vorausbestellungen-am-event-tag)
-8. [Tipps & häufige Fragen](#tipps--häufige-fragen)
+7. [Verfügbarkeit (Ausverkauft)](#verfügbarkeit-ausverkauft)
+8. [Vorausbestellungen am Event-Tag](#vorausbestellungen-am-event-tag)
+9. [Tipps & häufige Fragen](#tipps--häufige-fragen)
 
 ---
 
@@ -54,8 +55,10 @@ Nach der Anmeldung sehen Sie das **Dashboard** mit aktuellen Zahlen:
 | Bestellungen | Alle | Alle Bestellungen einsehen |
 | Küche | Küchenteam | Bestellungen bearbeiten |
 | Abholung | Ausgabe | Abholung per Nummer bestätigen |
+| Abholboard | Küche / Ausgabe | Monitor mit fertigen Abholnummern öffnen (`/abholboard`) |
 | Bestellung | Vor Ort | Neue Bestellung aufgeben |
-| Administration | Nur Admin | Link zum Admin-Bereich (Verein, Benutzer, Events) |
+| Verfügbarkeit | Küche / Verwaltung | Speisen & Getränke als ausverkauft markieren |
+| Administration | Nur Admin | Link zum Admin-Bereich (Verein, Team, Events) |
 
 ---
 
@@ -155,6 +158,20 @@ Zeigt alle Bestellungen mit Abholnummer, Uhrzeit, Gerichten, Quelle (Online / Vo
 
 ---
 
+## Verfügbarkeit (Ausverkauft)
+
+**Adresse:** `/service/speisen`
+
+![Verfügbarkeit](screenshots/26-verfuegbarkeit.png)
+
+Pro Veranstaltung können Sie Speisen & Getränke als **ausverkauft** markieren. Die Einstellung gilt nur für die oben gewählte Veranstaltung und erscheint sofort auf der öffentlichen Bestellseite.
+
+1. Veranstaltung im Kopfbereich wählen
+2. Schalter auf **Ausverkauft** stellen (oder zurück auf **Verfügbar**)
+3. Fertig – kein Speichern-Button nötig
+
+---
+
 ## Vorausbestellungen am Event-Tag
 
 Kunden können **Wochen vorher** online bestellen. Am Veranstaltungstag:
@@ -206,7 +223,7 @@ Wenn das Modul **Rechtliche Informationen** aktiviert ist, erscheinen zusätzlic
 
 ### Abholboard für Gäste
 
-Separater Monitor unter `/abholboard` – kein Login nötig. Bei mehreren aktiven Veranstaltungen zuerst die richtige Veranstaltung wählen.
+Separater Monitor unter `/abholboard` – kein Login nötig. Im Service-Menü gibt es den Eintrag **Abholboard**. Bei mehreren aktiven Veranstaltungen zuerst die richtige Veranstaltung wählen.
 
 ![Abholboard](screenshots/04-abholboard-monitor.png)
 

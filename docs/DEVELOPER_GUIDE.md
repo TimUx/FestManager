@@ -263,7 +263,7 @@ docker compose exec backend npm run seed
 ### Wichtige Modelle
 
 - **ClubSettings** – Name des Veranstalters, Logo, Kontaktdaten, Bestell-Pflichtfelder, Stornierungsfrist (Singleton)
-- **FoodItem** – Gerichte pro Veranstaltung
+- **FoodItem** – Speisen & Getränke (mandantenweiter Katalog, Zuordnung pro Veranstaltung)
 - **Order** – Bestellung mit `orderNumber`, `orderDate`, `status`
 - **DailyOrderCounter** – Atomarer Zähler für Tages-Bestellnummern
 - **OrderStatus** – Status-Historie (Audit-Trail)
@@ -355,7 +355,7 @@ Vollständige Modul-API: siehe [ADR-003](architecture/003-module-system.md) und 
 | GET | `/staff/events` | ADMIN, STAFF |
 | GET | `/staff/events/cashier` | Kassen-Veranstaltungen |
 | GET | `/staff/events/pickup` | Abhol-Veranstaltungen |
-| GET | `/staff/food-items` | Speisen-Katalog |
+| GET | `/staff/food-items` | Speisen & Getränke-Katalog |
 | PUT | `/staff/events/:id/food-item-assignments` | Speisen-Zuordnung |
 | POST | `/staff/orders/cashier` | Body: `eventId`, `items`, … |
 | POST | `/staff/orders/lookup` | Body: `eventId`, `orderNumber`, optional `lastName` |
@@ -421,7 +421,7 @@ Küche und Abholung sehen am Veranstaltungstag alle Bestellungen – auch solche
 
 **Wichtig (Zahlung & Küchenfreigabe):**
 
-- Im **Mitarbeiterbereich** sind Bestellungen **immer sichtbar** (unabhängig vom Zahlstatus). Der Zahlstatus wird als Label angezeigt.
+- Im **Service** sind Bestellungen **immer sichtbar** (unabhängig vom Zahlstatus). Der Zahlstatus wird als Label angezeigt.
 - In der **Küche** erscheinen Bestellungen erst, wenn sie **für die Küche freigegeben** wurden (`Order.released_to_kitchen`).
   - Vor-Ort-Bestellungen werden sofort freigegeben.
   - Online-Bestellungen werden nach erfolgreicher Online-Zahlung automatisch freigegeben oder können in der Bestellliste manuell freigegeben werden.
@@ -496,7 +496,7 @@ docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.52.0-ja
   bash -c "apt-get update -qq && apt-get install -y -qq python3-pil && cd frontend && npm install && npm run build && cd .. && npm install && npm run screenshots"
 ```
 
-Neue Screenshots (u. a. `21-payment-admin.png`, `22-payment-einstellungen.png`) werden automatisch mit erzeugt.
+Neue Screenshots (u. a. `21-payment-admin.png`, `22-payment-einstellungen.png`) werden automatisch mit erzeugt. Die für die Landingpage benötigten Dateien werden zusätzlich nach `frontend/public/screenshots/` kopiert.
 
 Umgebungsvariablen für die Screenshot-Pipeline:
 

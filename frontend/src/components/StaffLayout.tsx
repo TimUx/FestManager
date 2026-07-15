@@ -26,6 +26,7 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import TvIcon from '@mui/icons-material/Tv';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -71,6 +72,12 @@ const navItems: Array<{
   },
   { path: '/service/kueche', label: 'Küche', icon: <KitchenIcon />, permissions: ['orders.kitchen'] },
   { path: '/service/abholung', label: 'Abholung', icon: <DoneAllIcon />, permissions: ['orders.pickup'] },
+  {
+    path: '/abholboard',
+    label: 'Abholboard',
+    icon: <TvIcon />,
+    permissions: ['orders.pickup', 'orders.kitchen', 'orders.view'],
+  },
   { path: '/service/bestellung', label: 'Bestellung', icon: <AddShoppingCartIcon />, permissions: ['orders.manage'] },
   {
     path: '/service/speisen',

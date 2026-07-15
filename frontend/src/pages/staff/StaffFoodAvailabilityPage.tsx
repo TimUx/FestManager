@@ -77,7 +77,7 @@ export function StaffFoodAvailabilityPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-        Markieren Sie Gerichte als ausverkauft. Die Einstellung gilt jeweils für die gewählte Veranstaltung.
+        Markieren Sie Speisen & Getränke als ausverkauft. Die Einstellung gilt jeweils für die gewählte Veranstaltung.
       </Typography>
 
       {events.length === 0 && (
@@ -97,7 +97,7 @@ export function StaffFoodAvailabilityPage() {
         <>
           {soldOutCount > 0 && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              {soldOutCount} {soldOutCount === 1 ? 'Gericht ist' : 'Gerichte sind'} derzeit ausverkauft.
+              {soldOutCount} {soldOutCount === 1 ? 'Eintrag ist' : 'Einträge sind'} derzeit ausverkauft.
             </Alert>
           )}
 
@@ -145,7 +145,7 @@ export function StaffFoodAvailabilityPage() {
 
           {items.length === 0 && (
             <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-              Für diese Veranstaltung sind noch keine Speisen zugeordnet.
+              Für diese Veranstaltung sind noch keine Speisen & Getränke zugeordnet.
             </Typography>
           )}
         </>

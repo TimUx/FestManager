@@ -12,7 +12,7 @@ FestSchmiede wird von Vereinshelfern betrieben, nicht von DevOps-Teams. Die bish
 
 Wir führen ein **volunteer-first** Admin-Erlebnis ein:
 
-1. **Fachliche Seiten vor dynamischem Settings-Katalog** — Navigation und Dashboard-Kacheln zeigen nur Alltagsaufgaben (Veranstaltungen, Speisen, Team, Funktionen, Veranstalter, Bestellung, Benachrichtigungen).
+1. **Fachliche Seiten vor dynamischem Settings-Katalog** — Navigation und Dashboard-Kacheln zeigen nur Alltagsaufgaben (Veranstaltungen, Speisen & Getränke, Team, Funktionen, Veranstalter, Bestellung, Benachrichtigungen).
 2. **Einstellungen mit klaren Labels** — Unter „Einstellungen“ nur `Veranstalter`, `Bestellung`, `Benachrichtigungen` (Namespaces `core.club`, `core.order`, `module.notifications`).
 3. **Technik unter „Erweitert“** — Version, Fehler, Funktionsstatus und Echtzeit-Verbindung sind standardmäßig ausgeblendet und in ausklappbaren Bereichen „Erweitert“ erreichbar.
 4. **Settings-Gruppen mit `advanced: true`** — Kanal-spezifische Benachrichtigungsoptionen (ntfy, Discord, Slack, Teams) erscheinen erst nach Aufklappen von „Erweitert“.

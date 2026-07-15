@@ -16,11 +16,11 @@ Ausführlichere Admin-Themen: [Admin Guide](ADMIN_GUIDE.md) · Einführung ohne 
 4. **`.env` sichern** — Datei mit Passwörtern und Secrets kopieren (USB-Stick oder Passwort-Manager), nicht ins öffentliche Git legen.
 5. **Backup erstellen** — siehe [Backup](#backup-vor-updates-und-regelmäßig).
 6. **Aktive Veranstaltung(en)** — Im Admin: gewünschte Events mit **Veranstaltung aktiv** einschalten; Datum und Uhrzeiten prüfen.
-7. **Speisekatalog & Zuordnung** — Gerichte unter **Speisen** pflegen; pro Veranstaltung unter **Veranstaltungen → Speisen** zuordnen.
+7. **Speisen & Getränke** — Katalog unter **Speisen & Getränke** pflegen; pro Veranstaltung unter **Veranstaltungen → Speisen & Getränke** zuordnen.
 8. **Online-Bestellung** — Schalter „Online-Bestellungen“ am Event eingeschaltet (falls gewünscht).
 9. **Mitarbeiter** — Konten für Küche, Kasse und Abholung angelegt, **keine Demo-Passwörter** in Produktion.
 10. **Testbestellung** — Einmal von Handy/Tablet bestellen und in der Küche sichtbar?
-11. **Abholboard** — Monitor unter `/abholboard` im Vollbild, WLAN stabil.
+11. **Abholboard** — Monitor unter `/abholboard` im Vollbild (auch über Service-Menü → Abholboard), WLAN stabil.
 12. **HTTPS** — Öffentliche URL nur über verschlüsselte Verbindung (Reverse Proxy), siehe [Admin Guide — Reverse Proxy](ADMIN_GUIDE.md#reverse-proxy-https).
 
 ---
@@ -31,6 +31,8 @@ Ausführlichere Admin-Themen: [Admin Guide](ADMIN_GUIDE.md) · Einführung ohne 
 2. Küche: Tablet auf `/service/kueche` — Lautstärke/Bildschirm an.
 3. Abholung: `/service/abholung` bereit halten.
 4. Bei Bedarf: Kasse `/service/bestellung` für Bestellungen vor Ort.
+5. Verfügbarkeit: `/service/speisen` – ausverkaufte Speisen & Getränke markieren.
+6. Abholboard über Service-Menü oder `/abholboard` im Vollbild.
 5. **WLAN-Probleme?** Seite neu laden; Bestellungen bleiben in der Datenbank.
 6. **Kein Panik bei Updates** — Am Veranstaltungstag **kein** `docker compose pull` / Update durchführen.
 
@@ -65,12 +67,15 @@ Alternativ `IMAGE_TAG=v2.4.36` dauerhaft in `.env` setzen.
 
 Der Assistent führt automatisch aus:
 
-1. **Konfigurations-Backup** (`.installer-state/backups/`)
-2. **Datenbank-Backup** (`scripts/backup/postgres-backup.sh`)
-3. **Neue Images** (`docker compose pull` — Tags aus GitHub Release / `release-validation.yml`)
-4. **Container neu starten** (Schema-Sync beim Backend-Start)
-5. **Health-Check** (API muss `status: ok` melden)
-6. Bei Fehler: **Rollback** (Config + optional Datenbank)
+1. **Installer-Bootstrap** aktualisieren (Compose, Installer-Skripte vom Release-Tag)
+2. **Konfigurations-Backup** (`.installer-state/backups/`)
+3. **Datenbank-Backup** (`scripts/backup/postgres-backup.sh`)
+4. **Neue Images** (`docker compose pull` — Tags aus GitHub Release / `release-validation.yml`)
+5. **Container neu starten** (Schema-Sync beim Backend-Start)
+6. **Health-Check** (API muss `status: ok` melden)
+7. Bei Fehler: **Rollback** (Config + optional Datenbank)
+
+Phase 1 lädt zuerst die aktuellen Installer-Dateien vom gewählten Release (`IMAGE_TAG` / `FESTSCHMIEDE_REF`, sonst die Version aus `install.sh`). Anschließend startet `install.sh` neu und führt Phase 2 (Anwendungs-Update) mit dem frischen Installer aus.
 
 Vor dem Update nur prüfen (keine Änderungen):
 

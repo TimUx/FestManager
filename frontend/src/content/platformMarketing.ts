@@ -5,7 +5,7 @@ export const PLATFORM_FEATURES = [
   { title: 'Online-Zahlungen', description: 'Flexible Zahlungsanbieter für bargeldlose Abwicklung vor Ort und online.' },
   { title: 'Benachrichtigungen', description: 'E-Mail-Benachrichtigungen für Bestellungen, Status und Verwaltung.' },
   { title: 'Auswertungen', description: 'Dashboard und Statistiken für fundierte Entscheidungen während der Veranstaltung.' },
-  { title: 'Veranstaltungsorganisation', description: 'Veranstaltungen, Speisen, Module und Einstellungen zentral verwalten.' },
+  { title: 'Veranstaltungsorganisation', description: 'Veranstaltungen, Speisen & Getränke, Funktionen und Einstellungen zentral verwalten.' },
 ];
 
 export const PLATFORM_BENEFITS = [
@@ -84,12 +84,14 @@ export const ORDER_PROCESS_STEPS = [
 ];
 
 export const SCREENSHOTS = [
+  { src: '/screenshots/01-bestellseite-monitor.png', title: 'Bestellseite', alt: 'Öffentliche Bestellseite' },
   { src: '/screenshots/06-dashboard.png', title: 'Dashboard', alt: 'FestSchmiede Dashboard mit Statistiken' },
-  { src: '/screenshots/09-bestellung.png', title: 'Bestellung', alt: 'Öffentliche Bestellseite' },
   { src: '/screenshots/07-kuechenansicht-tablet.png', title: 'Küche', alt: 'Küchenansicht auf dem Tablet' },
-  { src: '/screenshots/21-payment-admin.png', title: 'Zahlungen', alt: 'Zahlungseinstellungen in der Administration' },
+  { src: '/screenshots/09-bestellung.png', title: 'Bestellung vor Ort', alt: 'Bestellung vor Ort im Service' },
   { src: '/screenshots/16-admin-uebersicht.png', title: 'Administration', alt: 'Administrationsübersicht' },
-  { src: '/screenshots/20-modulverwaltung.png', title: 'Module', alt: 'Modulverwaltung' },
+  { src: '/screenshots/20-modulverwaltung.png', title: 'Funktionen', alt: 'Funktionsverwaltung' },
+  { src: '/screenshots/21-payment-admin.png', title: 'Zahlungen', alt: 'Zahlungsübersicht in der Administration' },
+  { src: '/screenshots/26-verfuegbarkeit.png', title: 'Verfügbarkeit', alt: 'Ausverkauft-Schalter im Service' },
 ];
 
 export const ORGANIZATION_TYPES = [

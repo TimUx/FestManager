@@ -8,7 +8,7 @@
 
 Bisher kannten Mandanten nur die technischen Rollen `ADMIN` und `STAFF`. Alle STAFF-Nutzer teilten sich eine **globale** Permission-Liste auf der `Role`-Tabelle — eine Änderung für einen Küchen-Mitarbeiter betraf alle Helfer im Verein.
 
-Vereine denken in **fachlichen Aufgaben**: Küche, Abholung, Kasse, Speisenpflege, Finanzen, Rechtliches.
+Vereine denken in **fachlichen Aufgaben**: Küche, Abholung, Kasse, Speisen & Getränke, Finanzen, Rechtliches.
 
 ## Entscheidung
 
@@ -26,7 +26,7 @@ Vereine denken in **fachlichen Aufgaben**: Küche, Abholung, Kasse, Speisenpfleg
 | Küche | Küchenmonitor, Bondruck | Team, Settings, Payment-Config |
 | Abholung | Abholung bestätigen | Admin, Payment |
 | Kasse | Kasse, Zahlungsstatus lesen | Team, Payment-Settings |
-| Speisenpflege | Speisen, Veranstaltungen | Team, Finanzen |
+| Speisen & Getränke (`speisenpflege`) | Speisen & Getränke, Veranstaltungen | Team, Finanzen |
 | Finanzen | Zahlungen, Statistiken | Team |
 | Rechtliches | Impressum, AGB | Team, Payment-Settings |
 

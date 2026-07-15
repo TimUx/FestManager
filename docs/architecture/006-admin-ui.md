@@ -54,9 +54,9 @@ Runtime-`registerMenus()` / `registerWidgets()` sind Fallback, wenn Manifest lee
 
 Der Core registriert Builtin-Seiten über `registerCoreAdminMetadata()` → `CoreAdminMetadataRegistry` (kein direkter Platform→Core-Import in `AdminUiService`).
 
-- **Builtin-Seiten**: Benutzer, Veranstaltungen, Speisen, Module (`pageType: builtin|modules`)
-- **Settings-Seiten**: Verein, Bestellung, E-Mail aus `CORE_SETTINGS_SCHEMAS`
-- **Dashboard**: Kacheln aus allen Seiten + Mitarbeiterbereich-Link
+- **Builtin-Seiten**: Team, Veranstaltungen, Speisen & Getränke, Funktionen (`pageType: builtin|modules`)
+- **Settings-Seiten**: Veranstalter, Bestellung, Benachrichtigungen aus `CORE_SETTINGS_SCHEMAS`
+- **Dashboard**: Kacheln aus allen Seiten + Service-Link
 
 ### AdminUiService
 

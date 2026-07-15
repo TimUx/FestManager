@@ -31,6 +31,9 @@ const EVENT_ID = '00000000-0000-0000-0000-000000000001';
 const ORDER_ID = '00000000-0000-0000-0000-000000000042';
 const ORDER_LOOKUP_TOKEN = 'a1b2c3d4e5f6789012345678abcdef12';
 
+/** When capturing the setup wizard, return incomplete setup status. */
+let captureSetupIncomplete = false;
+
 const MIME: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -94,7 +97,7 @@ const mockEvent = {
 
 const mockFoodItems = [
   { id: '00000000-0000-0000-0001-000000000001', eventId: EVENT_ID, name: 'Bratwurst', description: 'Frische Bratwurst vom Grill mit Senf', price: 4.5, sortOrder: 1, active: true, soldOut: false },
-  { id: '00000000-0000-0000-0001-000000000002', eventId: EVENT_ID, name: 'Pommes', description: 'Knusprige Pommes frites', price: 3.5, sortOrder: 2, active: true, soldOut: false },
+  { id: '00000000-0000-0000-0001-000000000002', eventId: EVENT_ID, name: 'Pommes', description: 'Knusprige Pommes frites', price: 3.5, sortOrder: 2, active: true, soldOut: true },
   { id: '00000000-0000-0000-0001-000000000003', eventId: EVENT_ID, name: 'Steak', description: 'Rumpsteak vom Grill mit Kräuterbutter', price: 12.0, sortOrder: 3, active: true, soldOut: false },
   { id: '00000000-0000-0000-0001-000000000004', eventId: EVENT_ID, name: 'Cola', description: 'Erfrischungsgetränk 0,33 l', price: 2.5, sortOrder: 4, active: true, soldOut: false },
   { id: '00000000-0000-0000-0001-000000000005', eventId: EVENT_ID, name: 'Apfelwein', description: 'Regionaler Apfelwein 0,25 l', price: 3.0, sortOrder: 5, active: true, soldOut: false },
@@ -137,7 +140,17 @@ const mockStats = {
   avgProcessingMinutes: 8,
 };
 
-const mockUser = { id: 'u1', email: 'admin@verein.local', firstName: 'Admin', lastName: 'Verein', role: 'ADMIN' };
+const mockUser = {
+  id: 'u1',
+  email: 'admin@verein.local',
+  firstName: 'Admin',
+  lastName: 'Verein',
+  role: 'ADMIN',
+  username: 'admin',
+  passwordEnabled: true,
+  magicLinkEnabled: true,
+  notificationEmailsEnabled: true,
+};
 
 const mockModuleMenu = [
   { id: 'payment-admin', label: 'Payment', path: '/admin/payment', icon: 'Payment', parentId: 'modules', sortOrder: 10, requiredPermission: 'payment.view' },
@@ -434,7 +447,7 @@ const mockAdminUi = {
       })),
     {
       id: 'staff-area',
-      label: 'Mitarbeiterbereich',
+      label: 'Service',
       description: 'Küche, Abholung, Bestellungen',
       path: '/service',
       icon: 'Storefront',
@@ -452,9 +465,9 @@ const mockAdminUi = {
 };
 
 const mockUsers = [
-  { id: 'u1', email: 'admin@verein.local', firstName: 'Admin', lastName: 'Verein', role: 'ADMIN', active: true, createdAt: '2026-01-01T00:00:00.000Z' },
-  { id: 'u2', email: 'kueche@verein.local', firstName: 'Küche', lastName: 'Team', role: 'STAFF', active: true, createdAt: '2026-01-02T00:00:00.000Z' },
-  { id: 'u3', email: 'service@verein.local', firstName: 'Service', lastName: 'Muster', role: 'STAFF', active: false, createdAt: '2026-02-15T00:00:00.000Z' },
+  { id: 'u1', email: 'admin@verein.local', firstName: 'Admin', lastName: 'Verein', role: 'ADMIN', active: true, notificationEmailsEnabled: true, createdAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'u2', email: 'kueche@verein.local', firstName: 'Küche', lastName: 'Team', role: 'STAFF', active: true, roleTemplates: ['kueche'], notificationEmailsEnabled: false, createdAt: '2026-01-02T00:00:00.000Z' },
+  { id: 'u3', email: 'service@verein.local', firstName: 'Service', lastName: 'Muster', role: 'STAFF', active: false, roleTemplates: ['abholung'], notificationEmailsEnabled: false, createdAt: '2026-02-15T00:00:00.000Z' },
 ];
 
 function mockApi(pathname: string, method: string, body?: string, searchParams?: URLSearchParams): unknown {
@@ -526,6 +539,12 @@ function mockApi(pathname: string, method: string, body?: string, searchParams?:
   if (pathname === '/api/public/menu') {
     return { event: mockEvent, items: mockFoodItems, preOrderInfo: 'Vorbestellung möglich' };
   }
+  if (pathname === '/api/public/events' || pathname === '/api/public/events/pickup') {
+    return [mockEvent];
+  }
+  if (pathname === '/api/public/order-settings') {
+    return mockOrderSettings;
+  }
   if (pathname === '/api/public/event') return mockEvent;
   if (pathname.match(/^\/api\/public\/orders\/status\/[^/]+$/)) {
     const token = decodeURIComponent(pathname.split('/').pop() ?? '');
@@ -554,6 +573,22 @@ function mockApi(pathname: string, method: string, body?: string, searchParams?:
   if (pathname === '/api/auth/login') {
     return { token: 'mock-token', refreshToken: 'mock-refresh-token', user: mockUser };
   }
+  if (pathname === '/api/setup/status') {
+    if (captureSetupIncomplete) {
+      return {
+        completed: false,
+        currentStep: 1,
+        data: {
+          organization: {
+            name: 'Feuerwehr Musterstadt',
+            type: 'feuerwehr',
+            description: 'Freiwillige Feuerwehr Musterstadt – Tradition seit 1892',
+          },
+        },
+      };
+    }
+    return { completed: true, currentStep: 7, data: {} };
+  }
   if (pathname === '/api/auth/refresh') {
     return { token: 'mock-token', refreshToken: 'mock-refresh-token' };
   }
@@ -572,9 +607,19 @@ function mockApi(pathname: string, method: string, body?: string, searchParams?:
       available: [
         { key: 'orders.view', description: 'Bestellungen einsehen' },
         { key: 'orders.manage', description: 'Bestellungen bearbeiten' },
+        { key: 'food.view', description: 'Speisen & Getränke einsehen' },
+        { key: 'food.edit', description: 'Speisen & Getränke bearbeiten' },
         { key: 'payment.view', description: 'Zahlungsübersicht einsehen' },
       ],
       staff: ['orders.view', 'orders.manage'],
+      templates: [
+        { id: 'kueche', label: 'Küche', description: 'Küchenmonitor und Bondruck', permissions: ['orders.kitchen', 'orders.view'] },
+        { id: 'abholung', label: 'Abholung', description: 'Abholung bestätigen', permissions: ['orders.pickup', 'orders.view'] },
+        { id: 'kasse', label: 'Kasse', description: 'Bestellung vor Ort', permissions: ['orders.manage', 'orders.view'] },
+        { id: 'speisenpflege', label: 'Speisen & Getränke', description: 'Katalog Speisen & Getränke und Veranstaltungen pflegen', permissions: ['food.view', 'food.edit', 'events.manage'] },
+        { id: 'finanzen', label: 'Finanzen', description: 'Zahlungen und Auswertungen', permissions: ['payment.view'] },
+        { id: 'rechtliches', label: 'Rechtliches', description: 'Impressum und AGB', permissions: ['legal.view'] },
+      ],
     };
   }
   if (pathname === '/api/admin/modules' && method === 'GET') return mockModules;
@@ -656,12 +701,11 @@ async function setupPage(page: Page, auth = false) {
 }
 
 async function prepareOrderPage(page: Page) {
-  await page.getByTestId('order-customer-form').scrollIntoViewIfNeeded();
-  await page.getByLabel(/^Vorname/).fill('Max');
-  await page.getByLabel(/^Nachname/).fill('Mustermann');
   const dishesScroll = page.getByTestId('order-dishes-scroll');
+  await dishesScroll.waitFor({ timeout: 30000 });
   await dishesScroll.evaluate((el) => { el.scrollTop = 0; });
   const increaseButtons = page.locator('button[aria-label="Menge erhöhen"]');
+  await increaseButtons.first().waitFor({ timeout: 15000 });
   await increaseButtons.first().click({ force: true });
   await increaseButtons.first().click({ force: true });
   await increaseButtons.nth(1).click({ force: true });
@@ -673,10 +717,6 @@ async function prepareOrderPageForDevice(page: Page, device: keyof typeof DEVICE
   await prepareOrderPage(page);
 
   if (device === 'monitor') {
-    // Im 720px-Monitor-Viewport: Formular ausblenden, damit Gerichte sichtbar sind
-    await page.getByTestId('order-customer-form').evaluate((el) => {
-      (el as HTMLElement).style.display = 'none';
-    });
     await page.getByRole('heading', { name: 'Gerichte', exact: true }).scrollIntoViewIfNeeded();
     await page.getByTestId('order-dishes-scroll').evaluate((el) => { el.scrollTop = 0; });
   }
@@ -731,9 +771,22 @@ async function waitForPageReady(page: Page, spec: PageSpec) {
     await page.waitForSelector('text=Online-Zahlung', { timeout: 30000 });
     if (spec.url.includes('tab=settings')) {
       await page.waitForSelector('text=Stripe aktivieren', { timeout: 30000 });
+    } else if (spec.url.includes('tab=presets')) {
+      await page.waitForSelector('text=Nur Barzahlung vor Ort', { timeout: 30000 });
     } else if (spec.url.includes('tab=overview') || !spec.url.includes('tab=')) {
       await page.waitForSelector('text=Zahlungen heute', { timeout: 30000 });
     }
+    return;
+  }
+
+  if (adminPath === '/admin/profil') {
+    await page.waitForSelector('text=E-Mail-Benachrichtigungen erhalten', { timeout: 30000 });
+    return;
+  }
+
+  if (adminPath === '/admin/einrichtung') {
+    await page.waitForSelector('text=Einrichtungsassistent', { timeout: 30000 });
+    await page.waitForSelector('text=Organisation', { timeout: 30000 });
     return;
   }
 
@@ -769,7 +822,7 @@ async function waitForPageReady(page: Page, spec: PageSpec) {
       const t = document.body.innerText;
       return t.includes('Echtzeit-Verbindung')
         || t.includes('Funktionsstatus')
-        || (t.includes('Veranstaltungen') && t.includes('Mitarbeiterbereich') && t.includes('Online-Zahlung'));
+        || (t.includes('Veranstaltungen') && t.includes('Service') && t.includes('Online-Zahlung'));
     }, { timeout: 90000 });
     return;
   }
@@ -786,30 +839,35 @@ async function captureScreenshot(
   const page = await context.newPage();
   await setupPage(page, spec.auth);
 
-  await page.goto(`http://localhost:${PORT}${spec.url}`, { waitUntil: 'domcontentloaded' });
-  if (spec.auth) {
-    try {
-      await waitForPageReady(page, spec);
-    } catch (err) {
-      const debug = await page.evaluate(() => ({
-        url: window.location.href,
-        text: document.body.innerText.slice(0, 1200),
-      }));
-      console.error('Seite nicht bereit:', spec.name, debug);
-      throw err;
+  captureSetupIncomplete = spec.url.includes('/admin/einrichtung');
+  try {
+    await page.goto(`http://localhost:${PORT}${spec.url}`, { waitUntil: 'domcontentloaded' });
+    if (spec.auth) {
+      try {
+        await waitForPageReady(page, spec);
+      } catch (err) {
+        const debug = await page.evaluate(() => ({
+          url: window.location.href,
+          text: document.body.innerText.slice(0, 1200),
+        }));
+        console.error('Seite nicht bereit:', spec.name, debug);
+        throw err;
+      }
     }
-  }
-  await page.waitForTimeout(600);
-  if (spec.prepare) await spec.prepare(page);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(400);
+    await page.waitForTimeout(600);
+    if (spec.prepare) await spec.prepare(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(400);
 
-  await page.screenshot({
-    path: join(OUT_DIR, `${spec.name}.png`),
-    fullPage: false,
-  });
-  console.log(`✓ ${spec.name}.png (${viewport.width}×${viewport.height})`);
-  await context.close();
+    await page.screenshot({
+      path: join(OUT_DIR, `${spec.name}.png`),
+      fullPage: false,
+    });
+    console.log(`✓ ${spec.name}.png (${viewport.width}×${viewport.height})`);
+  } finally {
+    captureSetupIncomplete = false;
+    await context.close();
+  }
 }
 
 async function captureOrderPageDevices(browser: Awaited<ReturnType<typeof chromium.launch>>) {
@@ -917,6 +975,14 @@ async function main() {
       },
     },
     { name: '10-bestellungen', url: '/service/bestellungen', auth: true },
+    {
+      name: '26-verfuegbarkeit',
+      url: '/service/speisen',
+      auth: true,
+      prepare: async (page) => {
+        await page.waitForSelector('text=Ausverkauft', { timeout: 15000 });
+      },
+    },
     { name: '11-speisenverwaltung', url: '/admin/speisen', auth: true },
     { name: '12-veranstaltungen', url: '/admin/veranstaltungen', auth: true },
     { name: '13-vereinseinstellungen', url: '/admin/verein', auth: true },
@@ -924,13 +990,17 @@ async function main() {
     { name: '15-admin-login', url: '/admin/login' },
     { name: '16-admin-uebersicht', url: '/admin', auth: true },
     { name: '17-benutzerverwaltung', url: '/admin/benutzer', auth: true },
+    { name: '27-admin-profil', url: '/admin/profil', auth: true },
+    { name: '28-einrichtungsassistent', url: '/admin/einrichtung', auth: true },
     { name: '18-bestell-einstellungen', url: '/admin/bestellung', auth: true },
     { name: '19-email-einstellungen', url: '/admin/settings/module.notifications', auth: true },
     { name: '20-modulverwaltung', url: '/admin/module', auth: true },
     { name: '21-payment-admin', url: '/admin/payment?tab=overview', auth: true },
+    { name: '29-payment-zahlungsarten', url: '/admin/payment?tab=presets', auth: true },
     { name: '22-payment-einstellungen', url: '/admin/payment?tab=settings', auth: true },
     { name: '23-legal-admin', url: '/admin/legal?tab=overview', auth: true },
     { name: '24-legal-seiten', url: '/admin/legal?tab=pages', auth: true },
+    { name: '30-legal-einstellungen', url: '/admin/legal?tab=settings', auth: true },
     { name: '25-impressum', url: '/impressum', prepare: async (page) => {
       await page.waitForSelector('text=Feuerwehr Musterstadt e.V.', { timeout: 10000 });
     } },
@@ -953,6 +1023,31 @@ async function main() {
   }
 
   await browser.close();
+
+  const publicDir = join(process.cwd(), 'frontend', 'public', 'screenshots');
+  const publicNames = [
+    '01-bestellseite-monitor.png',
+    '02-kundenstatus.png',
+    '04-abholboard-monitor.png',
+    '06-dashboard.png',
+    '07-kuechenansicht-tablet.png',
+    '08-abholung.png',
+    '09-bestellung.png',
+    '16-admin-uebersicht.png',
+    '20-modulverwaltung.png',
+    '21-payment-admin.png',
+    '26-verfuegbarkeit.png',
+  ];
+  mkdirSync(publicDir, { recursive: true });
+  const { copyFileSync } = await import('fs');
+  for (const name of publicNames) {
+    const src = join(OUT_DIR, name);
+    if (existsSync(src)) {
+      copyFileSync(src, join(publicDir, name));
+      console.log(`✓ public/screenshots/${name}`);
+    }
+  }
+
   console.log(`\nScreenshots gespeichert in ${OUT_DIR} (1920×1080)`);
   process.exit(0);
 }
