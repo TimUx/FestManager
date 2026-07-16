@@ -75,14 +75,22 @@ export const eventSelectButtonSx: SxProps<Theme> = {
   p: { xs: 0.75, sm: 1.25 },
 };
 
-export const compactTouchSquareActionSx: SxProps<Theme> = {
-  ...touchSquareActionSx,
-  minHeight: { xs: 88, sm: 112, md: 132 },
-  gap: { xs: 0.75, sm: 1 },
-  fontSize: { xs: '0.8rem', sm: '1rem', md: '1.1rem' },
+export const staffQuickLinkButtonSx: SxProps<Theme> = {
+  minHeight: 52,
+  py: 1,
+  px: 1.5,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 0.5,
+  fontSize: { xs: '0.75rem', sm: '0.85rem' },
+  fontWeight: 700,
   borderRadius: 2,
+  textTransform: 'none',
+  width: '100%',
   '& .MuiSvgIcon-root': {
-    fontSize: { xs: 30, sm: 36, md: 42 },
+    fontSize: { xs: 24, sm: 28 },
   },
 };
 

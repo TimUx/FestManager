@@ -35,5 +35,6 @@ describe('API /auth', () => {
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.email).toBe(QA_USERS.admin.email);
+    expect(typeof res.body.notificationEmailsEnabled).toBe('boolean');
   });
 });

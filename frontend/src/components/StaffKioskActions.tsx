@@ -2,26 +2,28 @@ import { Button, Box } from '@mui/material';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import TvIcon from '@mui/icons-material/Tv';
 import { Link } from 'react-router-dom';
-import { compactTouchSquareActionSx } from '@/theme/touch';
+import { staffQuickLinkButtonSx } from '@/theme/touch';
 
 interface StaffKioskActionsProps {
+  /** dashboard = Schnellzugriff auf der Übersicht; navigation = Wechsel zwischen Service-Seiten */
+  variant?: 'dashboard' | 'navigation';
   /** Max width of the button grid */
   maxWidth?: number;
 }
 
 /**
- * Große Touch-Buttons für Kassen-/Abholmodus und Rückkehr zum Service.
+ * Kompakte Schnellzugriff-Buttons für Service-Bereich.
  */
-export function StaffKioskActions({ maxWidth = 560 }: StaffKioskActionsProps) {
+export function StaffKioskActions({ variant = 'navigation', maxWidth = 420 }: StaffKioskActionsProps) {
   return (
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(3, minmax(0, 1fr))' },
-        gap: { xs: 1, sm: 1.5 },
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: { xs: 1, sm: 1.25 },
         maxWidth,
-        mx: 'auto',
         width: '100%',
       }}
     >
@@ -30,7 +32,7 @@ export function StaffKioskActions({ maxWidth = 560 }: StaffKioskActionsProps) {
         to="/service/abholung"
         variant="contained"
         color="success"
-        sx={compactTouchSquareActionSx}
+        sx={staffQuickLinkButtonSx}
       >
         <DoneAllIcon />
         Abholung
@@ -40,21 +42,34 @@ export function StaffKioskActions({ maxWidth = 560 }: StaffKioskActionsProps) {
         to="/service/bestellung"
         variant="contained"
         color="primary"
-        sx={compactTouchSquareActionSx}
+        sx={staffQuickLinkButtonSx}
       >
         <AddShoppingCartIcon />
         Bestellung
       </Button>
-      <Button
-        component={Link}
-        to="/service"
-        variant="outlined"
-        color="inherit"
-        sx={compactTouchSquareActionSx}
-      >
-        <DashboardIcon />
-        Service
-      </Button>
+      {variant === 'dashboard' ? (
+        <Button
+          component={Link}
+          to="/abholboard"
+          variant="outlined"
+          color="inherit"
+          sx={staffQuickLinkButtonSx}
+        >
+          <TvIcon />
+          Abholboard
+        </Button>
+      ) : (
+        <Button
+          component={Link}
+          to="/service"
+          variant="outlined"
+          color="inherit"
+          sx={staffQuickLinkButtonSx}
+        >
+          <DashboardIcon />
+          Service
+        </Button>
+      )}
     </Box>
   );
 }

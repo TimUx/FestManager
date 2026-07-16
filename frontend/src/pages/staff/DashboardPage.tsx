@@ -12,7 +12,6 @@ import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import EuroIcon from '@mui/icons-material/Euro';
-import TimerIcon from '@mui/icons-material/Timer';
 import { StaffLayout } from '@/components/StaffLayout';
 import { StaffKioskActions } from '@/components/StaffKioskActions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,7 +88,6 @@ export function DashboardPage() {
     { title: 'Fertig', value: stats?.readyOrders ?? 0, icon: <CheckCircleIcon fontSize="inherit" />, color: 'success.main' },
     { title: 'Abgeholt', value: stats?.pickedUpOrders ?? 0, icon: <DoneAllIcon fontSize="inherit" />, color: 'info.main' },
     { title: 'Umsatz', value: formatPrice(stats?.revenue ?? 0), icon: <EuroIcon fontSize="inherit" />, color: 'secondary.main' },
-    { title: 'Ø Bearbeitung', value: `${stats?.avgProcessingMinutes ?? 0} Min.`, icon: <TimerIcon fontSize="inherit" />, color: 'text.secondary' },
   ];
 
   return (
@@ -109,14 +107,14 @@ export function DashboardPage() {
         ))}
       </Box>
 
-      <Box sx={{ mb: 2 }}>
+      <Box>
         <Typography variant="h5" fontWeight={800} gutterBottom>
-          Kassenbereich
+          Schnellzugriff
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Schnellzugriff für Bestellung vor Ort und Abholung.
+          Häufig genutzte Funktionen für Kasse und Abholung.
         </Typography>
-        <StaffKioskActions maxWidth={960} />
+        <StaffKioskActions variant="dashboard" />
       </Box>
     </StaffLayout>
   );

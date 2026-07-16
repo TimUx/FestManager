@@ -146,7 +146,7 @@ function RoleTemplatePicker({ templates, selected, onChange }: RoleTemplatePicke
 }
 
 export function UsersPage() {
-  const { token } = useAuth();
+  const { token, user: currentUser, setSession } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [templates, setTemplates] = useState<RoleTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -298,6 +298,10 @@ export function UsersPage() {
     try {
       const updated = await api.updateUser(token, user.id, { notificationEmailsEnabled: enabled });
       setUsers((prev) => prev.map((entry) => (entry.id === user.id ? updated : entry)));
+      if (currentUser?.id === user.id) {
+        const refreshToken = localStorage.getItem('verein_refresh_token');
+        setSession(token, refreshToken ?? undefined, updated);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Einstellung konnte nicht gespeichert werden');
     } finally {

@@ -570,6 +570,12 @@ export const api = {
     link.click();
     URL.revokeObjectURL(link.href);
   },
+  getNotificationStatus: (token: string) =>
+    request<{ active: boolean; channels: Record<string, { ok: boolean; message?: string }> }>(
+      '/modules/features/notifications/admin/status',
+      {},
+      token
+    ),
   testNotificationChannel: (token: string, channelId: string) =>
     request<{ ok: boolean; message?: string }>(
       `/modules/features/notifications/admin/channels/${channelId}/test`,

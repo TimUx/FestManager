@@ -1,6 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Alert, Box, Chip, CircularProgress, Paper, Typography } from '@mui/material';
+import { Alert, Box, Chip, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+
+const NOTIFICATION_CHANNEL_LABELS: Record<string, string> = {
+  email: 'E-Mail',
+  ntfy: 'ntfy',
+  discord: 'Discord',
+  slack: 'Slack',
+  teams: 'Teams',
+};
 
 function PaymentStatusWidget() {
   const [loading, setLoading] = useState(true);
@@ -32,8 +41,64 @@ function PaymentStatusWidget() {
   );
 }
 
+function NotificationsStatusWidget() {
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState(false);
+  const [channels, setChannels] = useState<Record<string, { ok: boolean; message?: string }>>({});
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    api.getNotificationStatus(token)
+      .then((data) => {
+        setActive(Boolean(data.active));
+        setChannels(data.channels ?? {});
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Fehler'))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) return <CircularProgress size={24} />;
+  if (error) return <Alert severity="error">{error}</Alert>;
+
+  const readyChannels = Object.entries(channels).filter(([, check]) => check.ok);
+
+  return (
+    <Box>
+      <Chip
+        label={active ? 'Aktiv' : 'Inaktiv'}
+        color={active ? 'success' : 'default'}
+        size="small"
+        sx={{ mb: 1 }}
+      />
+      {readyChannels.length > 0 ? (
+        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1 }}>
+          {readyChannels.map(([id]) => (
+            <Chip
+              key={id}
+              size="small"
+              variant="outlined"
+              label={NOTIFICATION_CHANNEL_LABELS[id] ?? id}
+            />
+          ))}
+        </Stack>
+      ) : null}
+      <Typography variant="body2" color="text.secondary">
+        {active
+          ? `${readyChannels.length} Kanal/Kanäle bereit.`
+          : 'Kein Benachrichtigungskanal konfiguriert.'}
+      </Typography>
+    </Box>
+  );
+}
+
 export const WIDGET_COMPONENTS: Record<string, () => ReactNode> = {
   'payment.status': () => <PaymentStatusWidget />,
+  'notifications.status': () => <NotificationsStatusWidget />,
 };
 
 export function renderWidget(componentId: string, title: string): ReactNode {

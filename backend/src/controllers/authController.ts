@@ -148,7 +148,7 @@ export const authController = {
         return;
       }
 
-      const { resolveUserPermissions } = await import('../core/permissions');
+      const { resolveUserPermissions, parseStoredRoleTemplates } = await import('../core/permissions');
       const permissions = resolveUserPermissions(user);
       res.json({
         id: user.id,
@@ -158,9 +158,11 @@ export const authController = {
         lastName: user.lastName,
         role: user.role.name,
         roleTemplate: user.roleTemplate ?? null,
+        roleTemplates: parseStoredRoleTemplates(user),
         permissions,
         passwordEnabled: user.passwordEnabled,
         magicLinkEnabled: user.magicLinkEnabled,
+        notificationEmailsEnabled: user.notificationEmailsEnabled ?? false,
       });
     } catch (err) {
       next(err);

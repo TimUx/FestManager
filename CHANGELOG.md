@@ -3,6 +3,16 @@
 Alle wesentlichen Aenderungen an **FestSchmiede** werden hier dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/).
 
+## 2.5.3 - 2026-07-16
+
+### Behoben
+
+- **Service-Dashboard:** Schnellzugriff überarbeitet, Durchschnitts-Bearbeitungszeit entfernt, kompaktere Buttons und direkter Link zum Abholboard statt zurück zum Service.
+- **Admin-Benachrichtigungen:** Dashboard-Widget `notifications.status` im Frontend registriert, damit der Status des Benachrichtigungs-Moduls korrekt angezeigt wird.
+- **Admin-Profil & Team:** `notificationEmailsEnabled` wird in beiden Ansichten konsistent geladen und beim Umschalten des eigenen Users sofort synchronisiert.
+
+---
+
 ## 2.5.2 - 2026-07-15
 
 ### Behoben
